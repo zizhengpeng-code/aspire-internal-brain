@@ -48,7 +48,7 @@ class BM25:
 class RoleAwareKB:
     """mode: 'no_acl' | 'post_filter' | 'pre_filter'"""
     def __init__(self, corpus_path, mode="pre_filter", k=3, refuse_below=0.0, audit_path=None):
-        corpus = json.load(open(corpus_path))
+        corpus = json.load(open(corpus_path, encoding="utf-8"))
         self.docs = {d["id"]: d for d in corpus["documents"]}
         self.index = BM25(corpus["documents"])
         self.mode, self.k, self.refuse_below = mode, k, refuse_below
@@ -78,5 +78,5 @@ class RoleAwareKB:
 
     def _audit(self, rec):
         if self.audit_path:
-            with open(self.audit_path, "a") as f:
+            with open(self.audit_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps({"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), **rec}) + "\n")
