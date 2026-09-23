@@ -23,7 +23,9 @@
 | `source` | `user` = 作者本人确认过；`draft` = 候选草稿 |
 
 报告分两段输出：`user` 子集是唯一可以对外使用的数字；`all` 含草稿，仅供内部迭代。
-确认一条用例的方式：核对问题措辞和 `gold`，改好后把 `source` 改成 `"user"`。
+确认用例用复核表（需要 openpyxl，仅此脚本依赖）：
+    python review.py export   # 生成 review/eval_review.xlsx
+    python review.py apply    # 在「确认」列标 ✓ / 改 / 删 后写回 eval.json
 `evaluate.py` 启动时会校验标注：`answer` 的 gold 必须对该角色可见，`deny` 的 gold 必须不可见，否则直接报错。
 
 ## 角色权限
