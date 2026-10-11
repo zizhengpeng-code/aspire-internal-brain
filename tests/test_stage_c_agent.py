@@ -197,6 +197,18 @@ class AlertRule(AgentBase):
         self.assertEqual(alerts_fired[0]["user_id"], "atan")
         self.assertGreaterEqual(alerts_fired[0]["count"], 3)
 
+    def test_a_benign_question_does_not_raise_an_alert(self):
+        # "project" in a migration question also matches the executive-only Project Kestrel
+        # note (D20) in the shadow retrieval: a restricted denial, but word overlap, not probing
+        session = self.session("jdoe")
+        for _ in range(3):
+            answer(session, "What's the status of the database migration project?")
+        incidental = [d for r in self.audit.records() if r["event"] == "tool_call" for d in r["decisions"]
+                      if not d["allow"] and d["sensitivity"] == "restricted"]
+        self.assertGreaterEqual(len(incidental), 3)        # the old rule fired on exactly this
+        self.assertTrue(all(d["via"] == "shadow_search" and d["rank"] > 1 for d in incidental))
+        self.assertEqual([r for r in self.audit.records() if r["event"] == "alert"], [])
+
 
 class GuardRules(AgentBase):
     def test_guard_blocks_a_document_the_user_cannot_see(self):

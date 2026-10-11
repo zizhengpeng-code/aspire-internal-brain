@@ -79,10 +79,17 @@ QUERY_AUDIT = {
 }
 
 
-def _decision(doc_id, doc, decision):
-    return {"doc_id": doc_id, "location": authz.location(doc) if doc else None,
-            "sensitivity": doc.get("sensitivity") if doc else None,
-            "allow": decision.allow, "layer": decision.layer, "reason": decision.reason}
+def _decision(doc_id, doc, decision, via, rank=None):
+    """One per-document allow/deny record. ``via`` says how the document came up:
+    ``open_doc`` / ``follow_links`` (asked for by id), ``shadow_search`` (matched the query
+    in the shadow retrieval, with its ``rank``) or ``link`` (listed by a document that was
+    opened). The alert rule uses it to tell probing apart from incidental matches."""
+    out = {"doc_id": doc_id, "location": authz.location(doc) if doc else None,
+           "sensitivity": doc.get("sensitivity") if doc else None,
+           "allow": decision.allow, "layer": decision.layer, "reason": decision.reason, "via": via}
+    if rank is not None:
+        out["rank"] = rank
+    return out
 
 
 def _access(session, doc_id, doc):
@@ -129,11 +136,11 @@ def make_tools(session):
 
         shadow = session.kb.index.search(query, None)[:k]
         decisions = []
-        for doc_id in dict.fromkeys(h.doc for h in shadow):
+        for rank, doc_id in enumerate(dict.fromkeys(h.doc for h in shadow), 1):
             doc = docs.get(doc_id)
             if doc is None:
                 continue
-            decisions.append(_decision(doc_id, doc, _access(session, doc_id, doc)))
+            decisions.append(_decision(doc_id, doc, _access(session, doc_id, doc), "shadow_search", rank))
         return {"results": results}, {"returned": returned, "decisions": decisions}
 
     def open_doc(args):
@@ -141,13 +148,13 @@ def make_tools(session):
         doc = docs.get(doc_id)
         if doc is None:
             decision = authz.Decision(False, "platform", "unknown document")
-            return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, None, decision)]}
+            return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, None, decision, "open_doc")]}
         decision = _access(session, doc_id, doc)
         if not decision.allow:
-            return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, doc, decision)]}
+            return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, doc, decision, "open_doc")]}
         # Only list links the user could open: naming a hidden linked document would
         # confirm that it exists. Withheld links are recorded in the audit, as in follow_links.
-        links, decisions = [], [_decision(doc_id, doc, decision)]
+        links, decisions = [], [_decision(doc_id, doc, decision, "open_doc")]
         for link_id in doc.get("links", []):
             linked = docs.get(link_id)
             if linked is None:
@@ -156,7 +163,7 @@ def make_tools(session):
             if link_decision.allow:
                 links.append(link_id)
             else:
-                decisions.append(_decision(link_id, linked, link_decision))
+                decisions.append(_decision(link_id, linked, link_decision, "link"))
         payload = {"doc_id": doc_id, "title": doc["title"], "platform": doc.get("source"),
                    "location": authz.location(doc), "updated_at": doc.get("updated_at"),
                    "text": doc["text"], "links": links}
@@ -167,14 +174,14 @@ def make_tools(session):
         doc = docs.get(doc_id)
         if doc is None or not _access(session, doc_id, doc).allow:
             decision = authz.Decision(False, "platform", "source document not visible")
-            return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, doc, decision)]}
+            return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, doc, decision, "follow_links")]}
         links, decisions, returned = [], [], []
         for link_id in doc.get("links", []):
             linked = docs.get(link_id)
             if linked is None:
                 continue
             decision = _access(session, link_id, linked)
-            decisions.append(_decision(link_id, linked, decision))
+            decisions.append(_decision(link_id, linked, decision, "link"))
             if decision.allow:
                 returned.append(link_id)
                 links.append({"doc_id": link_id, "title": linked["title"], "platform": linked.get("source"),

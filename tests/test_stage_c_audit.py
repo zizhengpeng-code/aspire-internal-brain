@@ -14,11 +14,15 @@ import alerts
 from audit import AuditLog
 
 
-def tool_call(user, ts, doc_id, location, sensitivity, allow, layer="platform"):
+def tool_call(user, ts, doc_id, location, sensitivity, allow, layer="platform", via=None, rank=None):
+    decision = {"doc_id": doc_id, "location": location, "sensitivity": sensitivity,
+                "allow": allow, "layer": layer, "reason": "test"}
+    if via is not None:
+        decision["via"] = via
+    if rank is not None:
+        decision["rank"] = rank
     return {"event": "tool_call", "user_id": user, "ts": ts, "tool": "search",
-            "args": {"query": "q"}, "returned": [],
-            "decisions": [{"doc_id": doc_id, "location": location, "sensitivity": sensitivity,
-                           "allow": allow, "layer": layer, "reason": "test"}]}
+            "args": {"query": "q"}, "returned": [], "decisions": [decision]}
 
 
 class AuditLogTests(unittest.TestCase):
@@ -104,6 +108,22 @@ class AlertRuleTests(unittest.TestCase):
             self.log.append(tool_call("atan", ts, "E09", "confluence:security", "restricted", False))
             alerts.check(self.log, "atan", now_ts=ts)
         self.assertEqual([r for r in self.log.records() if r["event"] == "alert"], [])
+
+    def test_incidental_denials_do_not_count(self):
+        # lower-ranked shadow hits and withheld links are word overlap, not probing
+        for i, (via, rank) in enumerate([("shadow_search", 2), ("shadow_search", 5), ("link", None)]):
+            ts = f"2026-10-14T14:0{i}:00+08:00"
+            self.log.append(tool_call("jdoe", ts, "D20", "confluence:exec", "restricted", False, via=via, rank=rank))
+            self.assertFalse(alerts.check(self.log, "jdoe", now_ts=ts))
+        self.assertEqual([r for r in self.log.records() if r["event"] == "alert"], [])
+
+    def test_top_ranked_shadow_hits_and_requests_by_id_count(self):
+        fired = []
+        for i, (via, rank) in enumerate([("shadow_search", 1), ("open_doc", None), ("follow_links", None)]):
+            ts = f"2026-10-14T14:0{i}:00+08:00"
+            self.log.append(tool_call("atan", ts, "E09", "confluence:security", "restricted", False, via=via, rank=rank))
+            fired.append(alerts.check(self.log, "atan", now_ts=ts))
+        self.assertEqual(fired, [False, False, True])
 
     def test_denies_outside_the_window_do_not_count(self):
         self.log.append(tool_call("atan", "2026-10-14T13:00:00+08:00", "E09", "confluence:security", "restricted", False))

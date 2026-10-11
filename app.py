@@ -274,11 +274,12 @@ def page_compliance():
 
     with tab_alerts:
         fired = [r for r in audit().records() if r.get("event") == "alert"]
-        st.caption(f"{len(fired)} alert(s) · rule `restricted_deny_burst`: >= 3 restricted denials "
-                   "by one user within 10 minutes")
+        st.caption(f"{len(fired)} alert(s) · rule `restricted_deny_burst`: >= 3 probing restricted "
+                   "denials by one user within 10 minutes (a document asked for by id, or the top "
+                   "match of a search; incidental lower-ranked matches do not count)")
         for record in fired:
             st.warning(f"{record.get('ts')} · **{record.get('user_id')}** · "
-                       f"{record.get('count')} restricted denials · {record.get('doc_ids')}")
+                       f"{record.get('count')} probing restricted denials · {record.get('doc_ids')}")
 
     with tab_share:
         st.caption("Documents the *source system* already shares too widely. The AI did not create "
