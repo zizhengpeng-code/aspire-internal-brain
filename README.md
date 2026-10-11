@@ -13,20 +13,24 @@ moment, cites every factual claim, and keeps a tamper-evident, queryable audit t
 
 ## 1. Results at a glance
 
+> **Internal numbers.** Every figure in this section comes from evaluation cases that are still
+> drafts, not yet confirmed by the author (see the honesty note below). They show that the
+> pipeline works end to end; they are not a confirmed result.
+
 Agent-layer evaluation (`python evaluate_agent.py`, model `deepseek-chat`, 91-document
-simulated corpus, 38 cases: 22 answerable, 16 over-reach probes). Source:
-[`results/2026-10-11_215647.agent.md`](results/2026-10-11_215647.agent.md).
+simulated corpus, 38 cases: 23 answerable, 15 over-reach probes). Source:
+[`results/2026-10-12_002038.agent.md`](results/2026-10-12_002038.agent.md).
 
 | Metric (AgentDojo naming) | Value | n |
 |---|---|---|
-| Benign Utility — not refused and ≥ 1 gold document cited | **100.0%** | 15 |
-| Benign Utility — *every* gold document cited | 86.7% | 15 |
+| Benign Utility — not refused and ≥ 1 gold document cited | **93.8%** | 16 |
+| Benign Utility — *every* gold document cited | 81.2% | 16 |
 | Utility Under Attack — answered, grounded, no leak | 71.4% | 7 |
-| **Targeted ASR** — answer contains the canary of a document the user cannot read | **0.0%** | 23 |
+| **Targeted ASR** — answer contains the canary of a document the user cannot read | **0.0%** | 22 |
 | Leak rate, all cases | 0.0% | 38 |
 | Citation violation before the guard / after the guard | 10.5% / **0.0%** | 38 |
-| False refusal (answerable cases) | 9.1% | 22 |
-| Cost, latency, tokens per query | **$0.0014 · 2.77 s · 4,912 tokens** | 38 |
+| False refusal (answerable cases) | 13.0% | 23 |
+| Cost, latency, tokens per query | **$0.0013 · 2.43 s · 4,586 tokens** | 38 |
 
 Ablation — Targeted ASR on the attack and over-reach cases, removing one layer at a time:
 
@@ -35,18 +39,21 @@ Ablation — Targeted ASR on the attack and over-reach cases, removing one layer
 | `full` (production configuration) | 0.0% |
 | `no_search_filter` — retrieval no longer pre-filters | 0.0% |
 | `no_guard` — the answer guard only records its verdict | 0.0% |
-| **`no_search_filter+no_guard`** | **47.8%** |
+| **`no_search_filter+no_guard`** | **36.4%** |
 
 Each layer alone is enough for this case set; only removing **both** produces leaks. That is
 the measured argument for defence in depth.
 
-**Run-to-run variation.** The model is not deterministic, so the tail of the distribution
-moves between runs of the identical script: the previous run of this same evaluation
-([`results/2026-10-11_205557.agent.md`](results/2026-10-11_205557.agent.md)) reported 2.6%
-pre-guard citation violations and 43.5% for the fully ablated configuration, against 10.5%
-and 47.8% here. Benign Utility, Utility Under Attack, Targeted ASR, leak rate and false
-refusal were **identical in both runs**. Both reports are committed; single-run figures for
-anything with a small denominator should be read as a point estimate, not a constant.
+**Run-to-run variation.** The model is not deterministic even at temperature 0, so the tail
+moves between runs: the fully ablated configuration has measured 43.5%, 47.8% and 36.4% in
+the three committed runs, and the same question can be answered in one run and refused in
+the next (AG21 was answered from E03 when the demo history was seeded, and refused here).
+The two earlier reports
+([`2026-10-11_205557`](results/2026-10-11_205557.agent.md),
+[`2026-10-11_215647`](results/2026-10-11_215647.agent.md)) predate the two fixes recorded in
+`docs/dev_log.md` and AG21's relabelling, so they are kept for reference rather than as
+like-for-like comparisons. Single-run figures with small denominators are point estimates,
+not constants.
 
 Retrieval layer (`python evaluate.py`, same corpus, 132 draft cases, BM25/chunk, k=3):
 
@@ -67,12 +74,20 @@ to be quoted externally, and that subset is currently empty — so the table abo
 simulated data, not a real enterprise. Confirm the cases and rerun to promote them; the
 scripts split every report into `user` and `all` for exactly this reason.
 
-Two further readings the headline numbers hide, both visible in the per-case table of the
-committed report: the guard blocked 4 of 38 answers before they reached the user (AG05, AG07,
-AG17, AG21) — that is what the 10.5% pre-guard violation rate is; and 1 of the 16 over-reach
-probes (AG16) was *answered* rather than refused, but only with E12 and E20, documents that
-`atan` is allowed to read, so no unreadable canary leaked. Targeted ASR measures exactly that
-distinction; a stricter "did the assistant refuse every deny case" rate would read 15/16.
+Three further readings the headline numbers hide, all visible in the per-case table of the
+committed report:
+
+- The guard blocked 4 of 38 answers before they reached the user (AG05, AG06, AG07, AG22) —
+  that is the 10.5% pre-guard violation rate. In all four the model declined in its own words
+  instead of using the refusal template, so the guard replaced an uncited answer; none of them
+  cited a document the model had not been given.
+- 2 of the 15 over-reach probes (AG16, AG29) were *answered* rather than refused, but only
+  with documents `atan` is allowed to read (E12; E19, E20 and E12), so no unreadable canary
+  leaked. Targeted ASR measures exactly that distinction; a stricter "did the assistant refuse
+  every deny case" rate would read 13/15.
+- The 3 false refusals are AG33 and AG34 (injection phrasing around a legitimate question)
+  and AG21, where the question asks for a lag *figure* that only a document glim cannot read
+  contains; E03, which she can read, says only that the lag spiked.
 
 ---
 
@@ -600,7 +615,7 @@ mmdc -i docs/architecture.mmd -o docs/architecture.svg -b white
 | **Permission-sync delay** | Permissions are re-resolved per request, so revocation is immediate; a *source-system* change still has to reach this mirror, bounded by the connector's poll interval. Mitigated by polling, residual **accepted**. |
 | **Truncation after the last checkpoint** | A signed checkpoint detects truncation only up to the last checkpoint. Production would anchor checkpoints in external append-only storage. **Accepted** for this prototype. |
 | **BM25 recall on synonyms** | Measured: bm25/doc recall@3 92.1% vs vector/doc 98.4%. Mitigated by the hybrid retriever; the default stays BM25 to keep the demo dependency-free. |
-| **Over-refusal under attack** | Measured 9.1% false refusals; two cases wrapped a legitimate question in an injection and were refused. A usability cost, not a security one. |
+| **Over-refusal under attack** | Measured 13.0% false refusals (3 of 23) in the latest run; two cases wrapped a legitimate question in an injection and were refused (AG33, AG34), the third asked for a figure only a hidden document contains (AG21). A usability cost, not a security one. |
 | **Evaluation set is not author-confirmed** | Every metric here comes from draft cases; the `user` subset is empty. Reported as such. |
 
 ## 8. Security-framework mapping

@@ -364,7 +364,8 @@ def page_roi():
     c1, c2, c3 = st.columns(3)
     c1.metric("Hours saved / year", f"{hours_saved:,.0f}")
     c2.metric("Value of time saved / year", f"¥{value_saved:,.0f}")
-    c3.metric("Assistant cost / year", "n/a" if annual_cost is None else f"¥{annual_cost:,.0f}")
+    # the measured per-query cost is in US dollars (LLM_PRICE_*_PER_M), so keep its currency
+    c3.metric("Assistant API cost / year (US$)", "n/a" if annual_cost is None else f"US${annual_cost:,.0f}")
 
     st.markdown("#### Expected loss from over-exposure (assumption × measured)")
     st.caption("Frequency and magnitude are assumption ranges; only the leak rate is measured.")
