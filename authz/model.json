@@ -1,0 +1,168 @@
+{
+  "schema_version": "1.1",
+  "type_definitions": [
+    { "type": "user" },
+    {
+      "type": "group",
+      "relations": { "member": { "this": {} } },
+      "metadata": { "relations": { "member": { "directly_related_user_types": [ { "type": "user" } ] } } }
+    },
+    {
+      "type": "confluence_space",
+      "relations": { "viewer": { "this": {} } },
+      "metadata": { "relations": { "viewer": { "directly_related_user_types": [ { "type": "user" }, { "type": "group", "relation": "member" } ] } } }
+    },
+    {
+      "type": "confluence_page",
+      "relations": {
+        "space": { "this": {} },
+        "allowed": { "this": {} },
+        "blocked": { "this": {} },
+        "platform_viewer": {
+          "intersection": {
+            "child": [
+              { "tupleToUserset": { "tupleset": { "relation": "space" }, "computedUserset": { "relation": "viewer" } } },
+              { "computedUserset": { "relation": "allowed" } }
+            ]
+          }
+        },
+        "can_read": {
+          "difference": {
+            "base": { "computedUserset": { "relation": "platform_viewer" } },
+            "subtract": { "computedUserset": { "relation": "blocked" } }
+          }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "space": { "directly_related_user_types": [ { "type": "confluence_space" } ] },
+          "allowed": { "directly_related_user_types": [ { "type": "user" }, { "type": "user", "wildcard": {} }, { "type": "group", "relation": "member" } ] },
+          "blocked": { "directly_related_user_types": [ { "type": "user" }, { "type": "group", "relation": "member" } ] }
+        }
+      }
+    },
+    {
+      "type": "jira_project",
+      "relations": { "browser": { "this": {} } },
+      "metadata": { "relations": { "browser": { "directly_related_user_types": [ { "type": "user" }, { "type": "group", "relation": "member" } ] } } }
+    },
+    {
+      "type": "jira_security_level",
+      "relations": { "member": { "this": {} } },
+      "metadata": { "relations": { "member": { "directly_related_user_types": [ { "type": "user" }, { "type": "group", "relation": "member" } ] } } }
+    },
+    {
+      "type": "jira_issue",
+      "relations": {
+        "project": { "this": {} },
+        "security_level": { "this": {} },
+        "unrestricted": { "this": {} },
+        "blocked": { "this": {} },
+        "platform_viewer": {
+          "intersection": {
+            "child": [
+              { "tupleToUserset": { "tupleset": { "relation": "project" }, "computedUserset": { "relation": "browser" } } },
+              {
+                "union": {
+                  "child": [
+                    { "computedUserset": { "relation": "unrestricted" } },
+                    { "tupleToUserset": { "tupleset": { "relation": "security_level" }, "computedUserset": { "relation": "member" } } }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "can_read": {
+          "difference": {
+            "base": { "computedUserset": { "relation": "platform_viewer" } },
+            "subtract": { "computedUserset": { "relation": "blocked" } }
+          }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "project": { "directly_related_user_types": [ { "type": "jira_project" } ] },
+          "security_level": { "directly_related_user_types": [ { "type": "jira_security_level" } ] },
+          "unrestricted": { "directly_related_user_types": [ { "type": "user", "wildcard": {} } ] },
+          "blocked": { "directly_related_user_types": [ { "type": "user" }, { "type": "group", "relation": "member" } ] }
+        }
+      }
+    },
+    {
+      "type": "slack_channel",
+      "relations": {
+        "member": { "this": {} },
+        "everyone_in": { "this": {} },
+        "viewer": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "member" } },
+              { "computedUserset": { "relation": "everyone_in" } }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "member": { "directly_related_user_types": [ { "type": "user" } ] },
+          "everyone_in": { "directly_related_user_types": [ { "type": "group", "relation": "member" } ] }
+        }
+      }
+    },
+    {
+      "type": "slack_thread",
+      "relations": {
+        "channel": { "this": {} },
+        "blocked": { "this": {} },
+        "platform_viewer": { "tupleToUserset": { "tupleset": { "relation": "channel" }, "computedUserset": { "relation": "viewer" } } },
+        "can_read": {
+          "difference": {
+            "base": { "computedUserset": { "relation": "platform_viewer" } },
+            "subtract": { "computedUserset": { "relation": "blocked" } }
+          }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "channel": { "directly_related_user_types": [ { "type": "slack_channel" } ] },
+          "blocked": { "directly_related_user_types": [ { "type": "user" }, { "type": "group", "relation": "member" } ] }
+        }
+      }
+    },
+    {
+      "type": "gdrive_folder",
+      "relations": { "viewer": { "this": {} } },
+      "metadata": { "relations": { "viewer": { "directly_related_user_types": [ { "type": "user" }, { "type": "group", "relation": "member" } ] } } }
+    },
+    {
+      "type": "gdrive_file",
+      "relations": {
+        "parent": { "this": {} },
+        "shared_with": { "this": {} },
+        "blocked": { "this": {} },
+        "platform_viewer": {
+          "union": {
+            "child": [
+              { "computedUserset": { "relation": "shared_with" } },
+              { "tupleToUserset": { "tupleset": { "relation": "parent" }, "computedUserset": { "relation": "viewer" } } }
+            ]
+          }
+        },
+        "can_read": {
+          "difference": {
+            "base": { "computedUserset": { "relation": "platform_viewer" } },
+            "subtract": { "computedUserset": { "relation": "blocked" } }
+          }
+        }
+      },
+      "metadata": {
+        "relations": {
+          "parent": { "directly_related_user_types": [ { "type": "gdrive_folder" } ] },
+          "shared_with": { "directly_related_user_types": [ { "type": "user" }, { "type": "group", "relation": "member" } ] },
+          "blocked": { "directly_related_user_types": [ { "type": "user" }, { "type": "group", "relation": "member" } ] }
+        }
+      }
+    }
+  ]
+}

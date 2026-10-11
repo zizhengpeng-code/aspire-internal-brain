@@ -1,0 +1,62 @@
+model
+  schema 1.1
+
+type user
+
+type group
+  relations
+    define member: [user]
+
+type confluence_space
+  relations
+    define viewer: [user, group#member]
+
+type confluence_page
+  relations
+    define space: [confluence_space]
+    define allowed: [user, user:*, group#member]
+    define blocked: [user, group#member]
+    define platform_viewer: viewer from space and allowed
+    define can_read: platform_viewer but not blocked
+
+type jira_project
+  relations
+    define browser: [user, group#member]
+
+type jira_security_level
+  relations
+    define member: [user, group#member]
+
+type jira_issue
+  relations
+    define project: [jira_project]
+    define security_level: [jira_security_level]
+    define unrestricted: [user:*]
+    define blocked: [user, group#member]
+    define platform_viewer: browser from project and (unrestricted or member from security_level)
+    define can_read: platform_viewer but not blocked
+
+type slack_channel
+  relations
+    define member: [user]
+    define everyone_in: [group#member]
+    define viewer: member or everyone_in
+
+type slack_thread
+  relations
+    define channel: [slack_channel]
+    define blocked: [user, group#member]
+    define platform_viewer: viewer from channel
+    define can_read: platform_viewer but not blocked
+
+type gdrive_folder
+  relations
+    define viewer: [user, group#member]
+
+type gdrive_file
+  relations
+    define parent: [gdrive_folder]
+    define shared_with: [user, group#member]
+    define blocked: [user, group#member]
+    define platform_viewer: shared_with or viewer from parent
+    define can_read: platform_viewer but not blocked

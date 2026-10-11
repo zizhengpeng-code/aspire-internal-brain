@@ -6,7 +6,7 @@ pre-filtering inside the vector store, incremental sync, immediate revocation.
 import copy, json, os, shutil, sys, tempfile, unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from langchain_core.embeddings import DeterministicFakeEmbedding
-import acl
+import authz
 from kb import RoleAwareKB
 from retrieval import BM25, CachedEmbeddings, Hybrid, VectorIndex
 
@@ -14,6 +14,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CORPUS = os.path.join(ROOT, "data", "corpus.json")
 DOCS = json.load(open(CORPUS, encoding="utf-8"))["documents"]
 QUERIES = ["salary band for senior engineers", "fraud rules", "board minutes", "annual leave", "breach register"]
+
+
+def _unlink(path):
+    if os.path.exists(path):
+        os.remove(path)
 
 class StageB(unittest.TestCase):
     def setUp(self):
@@ -57,17 +62,13 @@ class StageB(unittest.TestCase):
         vec = self.index(DOCS)
         kb = RoleAwareKB(CORPUS, retriever=vec, k=200)
         self.assertIn("D07", kb.retrieve("risk_analyst", "LumenFlex credit policy")["returned"])
-        # Revoke through the directory (the source of truth for group membership):
-        # only state/directory.json changes, the index and the corpus are untouched.
+        # Revocation = deleting a relationship tuple (the group membership). The index
+        # and the corpus are untouched; only state/tuples.json changes.
         state = os.path.join(ROOT, "state")
-        os.makedirs(state, exist_ok=True)
-        with open(os.path.join(ROOT, "data", "directory.json"), encoding="utf-8") as f:
-            directory = json.load(f)
-        directory["users"]["persona_risk_analyst"]["groups"].remove("risk_analyst")
-        with open(os.path.join(state, "directory.json"), "w", encoding="utf-8") as f:
-            json.dump(directory, f)
-        self.addCleanup(lambda: (shutil.rmtree(state, ignore_errors=True), acl.reload()))
-        acl.reload()
+        authz.delete([{"user": "user:persona_risk_analyst", "relation": "member",
+                       "object": "group:risk_analyst"}])
+        self.addCleanup(lambda: (_unlink(os.path.join(state, "tuples.json")), authz.reload()))
+        authz.reload()
         self.assertNotIn("D07", kb.retrieve("risk_analyst", "LumenFlex credit policy")["returned"])
 
 if __name__ == "__main__":

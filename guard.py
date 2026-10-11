@@ -12,7 +12,7 @@ Rules
 """
 import re
 
-import acl
+import authz
 
 REFUSAL_EN = ("I couldn't find information you have access to that answers this. "
               "If you think you need it, please ask the relevant team owner for access.")
@@ -43,7 +43,7 @@ def check(answer, seen_ids, user_id):
     not_returned = [c for c in cited if c not in seen]
     if not_returned:
         return False, f"cites documents not returned this turn: {not_returned}"
-    visible = acl.visible_ids(user_id)
+    visible = authz.list_readable(user_id)
     forbidden = [c for c in cited if c not in visible]
     if forbidden:
         return False, f"cites documents the user cannot see: {forbidden}"

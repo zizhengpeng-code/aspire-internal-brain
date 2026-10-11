@@ -13,7 +13,7 @@ never returned to the model. This is a deliberate trade-off (see the README): it
 the per-document allow/deny trail and the burst alert possible, at the cost of one
 extra retrieval per query.
 """
-import acl
+import authz
 
 SEARCH = {
     "type": "function",
@@ -76,7 +76,7 @@ QUERY_AUDIT = {
 
 
 def _decision(doc_id, doc, decision):
-    return {"doc_id": doc_id, "location": acl.location(doc) if doc else None,
+    return {"doc_id": doc_id, "location": authz.location(doc) if doc else None,
             "sensitivity": doc.get("sensitivity") if doc else None,
             "allow": decision.allow, "layer": decision.layer, "reason": decision.reason}
 
@@ -87,7 +87,7 @@ def make_tools(session):
     def search(args):
         query = args.get("query", "")
         k = int(args.get("k") or 6)
-        candidates = acl.visible_ids(session.user_id)
+        candidates = authz.list_readable(session.user_id)
         platforms = set(args.get("platforms") or [])
         since = args.get("since")
         if platforms:
@@ -103,7 +103,7 @@ def make_tools(session):
             returned.append(hit.doc)
             doc = docs[hit.doc]
             results.append({"doc_id": hit.doc, "chunk_id": hit.chunk, "platform": doc.get("source"),
-                            "location": acl.location(doc), "title": doc["title"],
+                            "location": authz.location(doc), "title": doc["title"],
                             "updated_at": doc.get("updated_at"), "url": doc.get("url"),
                             "snippet": doc["text"][:320]})
 
@@ -113,40 +113,40 @@ def make_tools(session):
             doc = docs.get(doc_id)
             if doc is None:
                 continue
-            decisions.append(_decision(doc_id, doc, acl.decide(session.user_id, doc)))
+            decisions.append(_decision(doc_id, doc, authz.check(session.user_id, doc_id)))
         return {"results": results}, {"returned": returned, "decisions": decisions}
 
     def open_doc(args):
         doc_id = args.get("doc_id")
         doc = docs.get(doc_id)
         if doc is None:
-            decision = acl.Decision(False, "platform", "unknown document")
+            decision = authz.Decision(False, "platform", "unknown document")
             return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, None, decision)]}
-        decision = acl.decide(session.user_id, doc)
+        decision = authz.check(session.user_id, doc_id)
         if not decision.allow:
             return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, doc, decision)]}
         payload = {"doc_id": doc_id, "title": doc["title"], "platform": doc.get("source"),
-                   "location": acl.location(doc), "updated_at": doc.get("updated_at"),
+                   "location": authz.location(doc), "updated_at": doc.get("updated_at"),
                    "url": doc.get("url"), "text": doc["text"], "links": doc.get("links", [])}
         return payload, {"returned": [doc_id], "decisions": [_decision(doc_id, doc, decision)]}
 
     def follow_links(args):
         doc_id = args.get("doc_id")
         doc = docs.get(doc_id)
-        if doc is None or not acl.decide(session.user_id, doc).allow:
-            decision = acl.Decision(False, "platform", "source document not visible")
+        if doc is None or not authz.check(session.user_id, doc_id).allow:
+            decision = authz.Decision(False, "platform", "source document not visible")
             return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, doc, decision)]}
         links, decisions, returned = [], [], []
         for link_id in doc.get("links", []):
             linked = docs.get(link_id)
             if linked is None:
                 continue
-            decision = acl.decide(session.user_id, linked)
+            decision = authz.check(session.user_id, link_id)
             decisions.append(_decision(link_id, linked, decision))
             if decision.allow:
                 returned.append(link_id)
                 links.append({"doc_id": link_id, "title": linked["title"], "platform": linked.get("source"),
-                              "location": acl.location(linked), "updated_at": linked.get("updated_at"),
+                              "location": authz.location(linked), "updated_at": linked.get("updated_at"),
                               "url": linked.get("url")})
         return {"doc_id": doc_id, "links": links}, {"returned": returned, "decisions": decisions}
 

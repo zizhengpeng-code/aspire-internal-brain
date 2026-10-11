@@ -17,7 +17,7 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import acl
+import authz
 from audit import AuditLog
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -27,7 +27,7 @@ AUDIT_PATH = os.path.join(ROOT, "logs", "audit.jsonl")
 
 
 def _write_state_corpus(docs):
-    with open(acl.corpus_path(), encoding="utf-8") as f:
+    with open(authz.corpus_path(), encoding="utf-8") as f:
         corpus = json.load(f)
     corpus["documents"] = docs
     os.makedirs(STATE, exist_ok=True)
@@ -42,11 +42,11 @@ def update(doc_id, embeddings=None, persist_dir="index/chroma"):
         raise FileNotFoundError(f"no update file for {doc_id} in data/updates/")
     with open(candidates[-1], encoding="utf-8") as f:
         new_doc = json.load(f)
-    with open(acl.corpus_path(), encoding="utf-8") as f:
+    with open(authz.corpus_path(), encoding="utf-8") as f:
         docs = json.load(f)["documents"]
     docs = [new_doc if d["id"] == doc_id else d for d in docs]
     _write_state_corpus(docs)
-    acl.reload()
+    authz.reload()
 
     stats = {"doc": doc_id, "updated_at": new_doc["updated_at"]}
     try:
@@ -60,7 +60,7 @@ def update(doc_id, embeddings=None, persist_dir="index/chroma"):
 
 def revoke(user_id, channel):
     """Remove a user from a Slack channel in state/directory.json (effective immediately)."""
-    with open(acl.directory_path(), encoding="utf-8") as f:
+    with open(authz.directory_path(), encoding="utf-8") as f:
         directory = json.load(f)
     members = directory["slack"]["channels"][channel]["members"]
     subject = f"user:{user_id}"
@@ -69,7 +69,7 @@ def revoke(user_id, channel):
     os.makedirs(STATE, exist_ok=True)
     with open(os.path.join(STATE, "directory.json"), "w", encoding="utf-8") as f:
         json.dump(directory, f, ensure_ascii=False, indent=1)
-    acl.reload()
+    authz.reload()
     return {"user": user_id, "channel": channel, "members": members}
 
 
@@ -115,7 +115,7 @@ def seed(llm=None, retriever="bm25", audit_path=AUDIT_PATH):
 
 def reset():
     shutil.rmtree(STATE, ignore_errors=True)
-    acl.reload()
+    authz.reload()
 
 
 def main(argv=None):

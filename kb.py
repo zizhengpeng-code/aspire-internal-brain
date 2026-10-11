@@ -2,7 +2,7 @@
 swappable retriever (see retrieval.py: BM25 / vector / hybrid, doc or chunk level).
 """
 import json, time
-import acl
+import authz
 from retrieval import BM25
 
 class RoleAwareKB:
@@ -10,10 +10,10 @@ class RoleAwareKB:
     (docs at doc level, chunks at chunk level).
 
     `corpus_path=None` uses the corpus currently in force (state/corpus.json when
-    present, else data/corpus.json) via acl. Access is always resolved through
-    acl.visible_ids, so it reflects the *current* directory state on every call."""
+    present, else data/corpus.json) via authz. Access is always resolved through
+    authz.list_readable, so it reflects the *current* directory state on every call."""
     def __init__(self, corpus_path=None, mode="pre_filter", k=3, refuse_below=0.0, audit_path=None, retriever=None):
-        corpus_path = corpus_path or acl.corpus_path()
+        corpus_path = corpus_path or authz.corpus_path()
         with open(corpus_path, encoding="utf-8") as f:
             corpus = json.load(f)
         self.docs = {d["id"]: d for d in corpus["documents"]}
@@ -22,9 +22,9 @@ class RoleAwareKB:
         self.audit_path = audit_path
 
     def allowed(self, role):
-        """Documents the legacy role can see, resolved through the platform ACLs
-        (the five legacy roles map to persona_<role> users in the directory)."""
-        return acl.visible_ids("persona_" + role)
+        """Documents the legacy role can see, resolved through the relationship-tuple
+        model (the five legacy roles map to persona_<role> users in the directory)."""
+        return authz.list_readable("persona_" + role)
 
     def retrieve(self, role, query):
         allowed = self.allowed(role)

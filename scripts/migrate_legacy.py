@@ -19,7 +19,7 @@ The five legacy roles are represented by five persona users
 (``persona_<role>``) defined in ``data/directory.json``; every legacy space is
 viewable by ``group:staff``. The migration is idempotent.
 
-Acceptance: for each role, ``acl.visible_ids("persona_" + role)`` must equal the
+Acceptance: for each role, ``authz.list_readable("persona_" + role)`` must equal the
 set of documents whose ``allowed_roles`` contains that role (see
 tests/test_stage_c_acl.py).
 """

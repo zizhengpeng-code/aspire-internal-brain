@@ -9,7 +9,7 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import acl
+import authz
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = json.load(open(os.path.join(ROOT, "data", "corpus.json"), encoding="utf-8"))["documents"]
@@ -18,7 +18,7 @@ LEGACY_ROLES = ["employee", "risk_analyst", "compliance_officer", "hr_manager", 
 
 
 def doc(**kw):
-    """A synthetic document with sensible defaults, for exercising acl.decide."""
+    """A synthetic document with sensible defaults, for exercising authz.decide."""
     base = {"id": "X", "source": "confluence", "title": "t", "department": "Engineering",
             "sensitivity": "internal", "acl": {}, "text": "x"}
     base.update(kw)
@@ -27,7 +27,7 @@ def doc(**kw):
 
 class PlatformRules(unittest.TestCase):
     def allow(self, user, **kw):
-        return acl.decide(user, doc(**kw)).allow
+        return authz.decide(user, doc(**kw)).allow
 
     # ---------------------------------------------------------------- Confluence
     def test_confluence_space_view(self):
@@ -72,31 +72,31 @@ class PlatformRules(unittest.TestCase):
         self.assertTrue(self.allow("atan", **file_share))      # file-level share overrides
 
     def test_unknown_user_and_unknown_source(self):
-        self.assertFalse(acl.decide("nobody", doc(acl={"space": "eng", "restrictions": {}})).allow)
-        self.assertEqual(acl.visible_ids("nobody"), set())
-        self.assertFalse(acl.decide("jdoe", doc(source="myspace")).allow)
+        self.assertFalse(authz.decide("nobody", doc(acl={"space": "eng", "restrictions": {}})).allow)
+        self.assertEqual(authz.visible_ids("nobody"), set())
+        self.assertFalse(authz.decide("jdoe", doc(source="myspace")).allow)
 
 
 class PolicyLayer(unittest.TestCase):
     def test_contractor_blocked_from_restricted(self):
         # platform ACL allows atan (folder shared with user:atan) but policy denies
         d = doc(source="gdrive", sensitivity="restricted", acl={"folder": "vendor-qa"})
-        decision = acl.decide("atan", d)
+        decision = authz.decide("atan", d)
         self.assertFalse(decision.allow)
         self.assertEqual(decision.layer, "policy")
         # an employee with the same platform grant is allowed
-        self.assertTrue(acl.decide("jdoe", d).allow)
+        self.assertTrue(authz.decide("jdoe", d).allow)
 
     def test_policy_switch_can_be_turned_off(self):
         d = doc(source="gdrive", sensitivity="restricted", acl={"folder": "vendor-qa"})
         os.environ["CONTRACTOR_BLOCKS_RESTRICTED"] = "0"
         self.addCleanup(lambda: os.environ.pop("CONTRACTOR_BLOCKS_RESTRICTED", None))
-        self.assertTrue(acl.decide("atan", d).allow)  # policy off => platform grant stands
+        self.assertTrue(authz.decide("atan", d).allow)  # policy off => platform grant stands
 
     def test_policy_only_tightens_never_widens(self):
         # a restricted doc atan's platform ACL already denies stays denied, layer platform
         d = doc(source="confluence", sensitivity="restricted", acl={"space": "security", "restrictions": {}})
-        decision = acl.decide("atan", d)
+        decision = authz.decide("atan", d)
         self.assertFalse(decision.allow)
         self.assertEqual(decision.layer, "platform")
 
@@ -106,7 +106,7 @@ class LegacyMigrationEquivalence(unittest.TestCase):
 
     def test_personas_match_allowed_roles(self):
         for role in LEGACY_ROLES:
-            new = acl.visible_ids("persona_" + role)
+            new = authz.visible_ids("persona_" + role)
             old = {d["id"] for d in LEGACY if role in d["allowed_roles"]}
             self.assertEqual(new & {d["id"] for d in LEGACY}, old, role)
 
@@ -122,11 +122,11 @@ class LegacyMigrationEquivalence(unittest.TestCase):
 
 class Locations(unittest.TestCase):
     def test_location_strings(self):
-        self.assertEqual(acl.location(doc(source="confluence", acl={"space": "payment-gateway"})),
+        self.assertEqual(authz.location(doc(source="confluence", acl={"space": "payment-gateway"})),
                          "confluence:payment-gateway")
-        self.assertEqual(acl.location(doc(source="jira", acl={"project": "DBMIG"})), "jira:DBMIG")
-        self.assertEqual(acl.location(doc(source="slack", acl={"channel": "#db-migration"})), "slack:#db-migration")
-        self.assertEqual(acl.location(doc(source="gdrive", acl={"folder": "eng-postmortems"})), "gdrive:eng-postmortems")
+        self.assertEqual(authz.location(doc(source="jira", acl={"project": "DBMIG"})), "jira:DBMIG")
+        self.assertEqual(authz.location(doc(source="slack", acl={"channel": "#db-migration"})), "slack:#db-migration")
+        self.assertEqual(authz.location(doc(source="gdrive", acl={"folder": "eng-postmortems"})), "gdrive:eng-postmortems")
 
 
 if __name__ == "__main__":

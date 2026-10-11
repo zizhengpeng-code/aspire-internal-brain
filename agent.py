@@ -10,7 +10,7 @@ pass, it is replaced by the refusal template. Everything is written to the audit
 import json
 import os
 
-import acl
+import authz
 import alerts
 import guard
 import retrieval
@@ -54,10 +54,10 @@ class Session:
         self.reload()
 
     def reload(self):
-        self.directory = acl.directory()
+        self.directory = authz.directory()
         self.user = self.directory.get("users", {}).get(self.user_id, {})
         self.groups = self.user.get("groups", [])
-        self.corpus_path = acl.corpus_path()
+        self.corpus_path = authz.corpus_path()
         with open(self.corpus_path, encoding="utf-8") as f:
             self.corpus = json.load(f)
         self.docs = {d["id"]: d for d in self.corpus["documents"]}
