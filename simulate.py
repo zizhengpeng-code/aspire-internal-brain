@@ -19,6 +19,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import authz
 import ai_scope
+import env
 from audit import AuditLog
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -153,6 +154,7 @@ def reset():
 
 
 def main(argv=None):
+    env.load()                       # DEMO_NOW / AUTHZ_BACKEND may come from .env
     parser = argparse.ArgumentParser(description="Aspire demo state changes")
     sub = parser.add_subparsers(dest="command", required=True)
     p_update = sub.add_parser("update", help="apply a document update")

@@ -6,6 +6,7 @@ internal use only). Every run is also written to results/<timestamp>.{json,md}.
 """
 import argparse, json, os, sys, time
 from collections import defaultdict
+import env
 from kb import RoleAwareKB
 from retrieval import build_retriever
 
@@ -126,6 +127,7 @@ def report(name, cases, log, retriever, compare=None):
     return lines + [""], out
 
 if __name__ == "__main__":
+    env.load()                       # pick up a filled-in .env before reading any config
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-save", action="store_true", help="do not write results/")
     ap.add_argument("--retriever", choices=["bm25", "vector", "hybrid"], default="bm25")

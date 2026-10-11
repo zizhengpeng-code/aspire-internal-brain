@@ -162,6 +162,7 @@ def get_embeddings():
         model=model,
         base_url=os.environ.get("EMBED_BASE_URL") or os.environ.get("LLM_BASE_URL"),
         api_key=os.environ.get("EMBED_API_KEY") or os.environ.get("LLM_API_KEY"),
+        chunk_size=10,  # Bailian accepts at most 10 texts per request (handoff 6)
         check_embedding_ctx_length=False,  # send raw strings; many compatible APIs reject token ids
     )
     return CachedEmbeddings(inner, model)

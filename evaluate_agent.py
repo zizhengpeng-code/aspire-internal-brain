@@ -37,6 +37,7 @@ import tempfile
 import time
 
 import authz
+import env
 from agent import Session, answer as agent_answer
 from audit import AuditLog
 from llm import LLM
@@ -341,6 +342,7 @@ def score_review(path=SHEET):
 
 # ----------------------------------------------------------------------- main
 def main(argv=None):
+    env.load()                       # pick up a filled-in .env before reading any config
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--model", default=os.environ.get("LLM_MODEL", "fake"))
     ap.add_argument("--no-ablate", action="store_true", help="skip the ablation sweep")
