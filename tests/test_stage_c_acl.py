@@ -13,6 +13,7 @@ import acl
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = json.load(open(os.path.join(ROOT, "data", "corpus.json"), encoding="utf-8"))["documents"]
+LEGACY = [d for d in DOCS if "allowed_roles" in d]  # D01-D70, migrated from the old schema
 LEGACY_ROLES = ["employee", "risk_analyst", "compliance_officer", "hr_manager", "executive"]
 
 
@@ -106,11 +107,12 @@ class LegacyMigrationEquivalence(unittest.TestCase):
     def test_personas_match_allowed_roles(self):
         for role in LEGACY_ROLES:
             new = acl.visible_ids("persona_" + role)
-            old = {d["id"] for d in DOCS if role in d["allowed_roles"]}
-            self.assertEqual(new, old, role)
+            old = {d["id"] for d in LEGACY if role in d["allowed_roles"]}
+            self.assertEqual(new & {d["id"] for d in LEGACY}, old, role)
 
     def test_legacy_docs_carry_platform_fields(self):
-        for d in DOCS:
+        self.assertTrue(LEGACY)
+        for d in LEGACY:
             self.assertEqual(d["source"], "confluence")
             self.assertIn("space", d["acl"])
             self.assertTrue(d["updated_at"])

@@ -1,0 +1,2371 @@
+{
+ "stamp": "2026-10-11_154426",
+ "corpus_docs": 91,
+ "k": 3,
+ "retriever": "bm25",
+ "unit": "chunk",
+ "embeddings": null,
+ "n_cases": {
+  "user": 0,
+  "all": 132
+ },
+ "user": {},
+ "all": {
+  "exp1": {
+   "no_acl": {
+    "mode": "no_acl",
+    "tau": 0.0,
+    "n_answer": 95,
+    "n_deny": 37,
+    "recall@3": 0.8894736842105263,
+    "full_hit@3": 0.8736842105263158,
+    "avg_returned": 2.2421052631578946,
+    "empty_rate": 0.021052631578947368,
+    "leak_rate_all": 0.5227272727272727,
+    "probe_leak": 0.9459459459459459,
+    "false_refusal": 0.021052631578947368,
+    "correct_refusal": 0.0,
+    "recall_by_tag": {
+     "colloquial": [
+      0.75,
+      12
+     ],
+     "cross_doc": [
+      0.75,
+      10
+     ],
+     "plain": [
+      0.9384615384615385,
+      65
+     ],
+     "zh_mix": [
+      0.875,
+      8
+     ]
+    },
+    "misses": [
+     {
+      "id": "A07",
+      "role": "employee",
+      "question": "I clicked a link in a suspicious email, who do I tell and how fast?",
+      "gold": [
+       "D06"
+      ],
+      "returned": [
+       "D29"
+      ],
+      "scores": [
+       12.9445,
+       8.4171,
+       8.2033
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A13",
+      "role": "risk_analyst",
+      "question": "What happens when one phone submits lots of applications in a day?",
+      "gold": [
+       "D10"
+      ],
+      "returned": [
+       "D47",
+       "D12",
+       "D38"
+      ],
+      "scores": [
+       7.563,
+       6.8605,
+       6.033
+      ],
+      "blocked_by_acl": 1
+     },
+     {
+      "id": "A19",
+      "role": "compliance_officer",
+      "question": "What's the process if customer personal data gets leaked?",
+      "gold": [
+       "D14"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       13.6553,
+       13.3374,
+       12.975
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A38",
+      "role": "employee",
+      "question": "how much holiday do i get lol",
+      "gold": [
+       "D01"
+      ],
+      "returned": [
+       "D30",
+       "D43",
+       "D42"
+      ],
+      "scores": [
+       4.7851,
+       4.5803,
+       4.2193
+      ],
+      "blocked_by_acl": 1
+     },
+     {
+      "id": "A39",
+      "role": "employee",
+      "question": "when's payday",
+      "gold": [
+       "D30"
+      ],
+      "returned": [
+       "D16",
+       "D21",
+       "D33"
+      ],
+      "scores": [
+       3.368,
+       3.2004,
+       3.1328
+      ],
+      "blocked_by_acl": 3
+     },
+     {
+      "id": "A43",
+      "role": "employee",
+      "question": "lost my laptop on the MRT, what now",
+      "gold": [
+       "D67",
+       "D06"
+      ],
+      "returned": [
+       "D67",
+       "D27"
+      ],
+      "scores": [
+       9.476,
+       7.5399,
+       6.989
+      ],
+      "blocked_by_acl": 1
+     },
+     {
+      "id": "A44",
+      "role": "employee",
+      "question": "I accidentally emailed a customer's statement to the wrong person, what should I do?",
+      "gold": [
+       "D56",
+       "D06"
+      ],
+      "returned": [
+       "D27",
+       "D56",
+       "D12"
+      ],
+      "scores": [
+       13.0502,
+       10.2157,
+       7.8639
+      ],
+      "blocked_by_acl": 2
+     },
+     {
+      "id": "A51",
+      "role": "employee",
+      "question": "who sits on the exco?",
+      "gold": [
+       "D63"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A54",
+      "role": "employee",
+      "question": "how many customers do we have now",
+      "gold": [
+       "D60"
+      ],
+      "returned": [
+       "E04",
+       "D48",
+       "D15"
+      ],
+      "scores": [
+       6.765,
+       5.9756,
+       4.6953
+      ],
+      "blocked_by_acl": 3
+     },
+     {
+      "id": "A67",
+      "role": "risk_analyst",
+      "question": "What is the DTI limit for LumenFlex, and how many exceptions went above it in Q3?",
+      "gold": [
+       "D07",
+       "D40"
+      ],
+      "returned": [
+       "D40",
+       "E07"
+      ],
+      "scores": [
+       10.2973,
+       9.3467,
+       7.4954
+      ],
+      "blocked_by_acl": 1
+     },
+     {
+      "id": "A83",
+      "role": "hr_manager",
+      "question": "PIP 一般多长时间？",
+      "gold": [
+       "D34"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A86",
+      "role": "hr_manager",
+      "question": "someone's been rated 1 twice, what now",
+      "gold": [
+       "D17",
+       "D34"
+      ],
+      "returned": [
+       "D31",
+       "D36",
+       "D05"
+      ],
+      "scores": [
+       8.8718,
+       7.9525,
+       7.1341
+      ],
+      "blocked_by_acl": 0
+     }
+    ]
+   },
+   "post_filter": {
+    "mode": "post_filter",
+    "tau": 0.0,
+    "n_answer": 95,
+    "n_deny": 37,
+    "recall@3": 0.8894736842105263,
+    "full_hit@3": 0.8736842105263158,
+    "avg_returned": 1.8421052631578947,
+    "empty_rate": 0.042105263157894736,
+    "leak_rate_all": 0.0,
+    "probe_leak": 0.0,
+    "false_refusal": 0.042105263157894736,
+    "correct_refusal": 0.7837837837837838,
+    "recall_by_tag": {
+     "colloquial": [
+      0.75,
+      12
+     ],
+     "cross_doc": [
+      0.75,
+      10
+     ],
+     "plain": [
+      0.9384615384615385,
+      65
+     ],
+     "zh_mix": [
+      0.875,
+      8
+     ]
+    },
+    "misses": [
+     {
+      "id": "A07",
+      "role": "employee",
+      "question": "I clicked a link in a suspicious email, who do I tell and how fast?",
+      "gold": [
+       "D06"
+      ],
+      "returned": [
+       "D29"
+      ],
+      "scores": [
+       12.9445,
+       8.4171,
+       8.2033
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A13",
+      "role": "risk_analyst",
+      "question": "What happens when one phone submits lots of applications in a day?",
+      "gold": [
+       "D10"
+      ],
+      "returned": [
+       "D47",
+       "D38"
+      ],
+      "scores": [
+       7.563,
+       6.033
+      ],
+      "blocked_by_acl": 1
+     },
+     {
+      "id": "A19",
+      "role": "compliance_officer",
+      "question": "What's the process if customer personal data gets leaked?",
+      "gold": [
+       "D14"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       13.6553,
+       13.3374,
+       12.975
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A38",
+      "role": "employee",
+      "question": "how much holiday do i get lol",
+      "gold": [
+       "D01"
+      ],
+      "returned": [
+       "D30",
+       "D43"
+      ],
+      "scores": [
+       4.7851,
+       4.5803
+      ],
+      "blocked_by_acl": 1
+     },
+     {
+      "id": "A39",
+      "role": "employee",
+      "question": "when's payday",
+      "gold": [
+       "D30"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 3
+     },
+     {
+      "id": "A43",
+      "role": "employee",
+      "question": "lost my laptop on the MRT, what now",
+      "gold": [
+       "D67",
+       "D06"
+      ],
+      "returned": [
+       "D67"
+      ],
+      "scores": [
+       9.476,
+       7.5399
+      ],
+      "blocked_by_acl": 1
+     },
+     {
+      "id": "A44",
+      "role": "employee",
+      "question": "I accidentally emailed a customer's statement to the wrong person, what should I do?",
+      "gold": [
+       "D56",
+       "D06"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       10.2157
+      ],
+      "blocked_by_acl": 2
+     },
+     {
+      "id": "A51",
+      "role": "employee",
+      "question": "who sits on the exco?",
+      "gold": [
+       "D63"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A54",
+      "role": "employee",
+      "question": "how many customers do we have now",
+      "gold": [
+       "D60"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 3
+     },
+     {
+      "id": "A67",
+      "role": "risk_analyst",
+      "question": "What is the DTI limit for LumenFlex, and how many exceptions went above it in Q3?",
+      "gold": [
+       "D07",
+       "D40"
+      ],
+      "returned": [
+       "D40"
+      ],
+      "scores": [
+       10.2973,
+       9.3467
+      ],
+      "blocked_by_acl": 1
+     },
+     {
+      "id": "A83",
+      "role": "hr_manager",
+      "question": "PIP 一般多长时间？",
+      "gold": [
+       "D34"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A86",
+      "role": "hr_manager",
+      "question": "someone's been rated 1 twice, what now",
+      "gold": [
+       "D17",
+       "D34"
+      ],
+      "returned": [
+       "D31",
+       "D36",
+       "D05"
+      ],
+      "scores": [
+       8.8718,
+       7.9525,
+       7.1341
+      ],
+      "blocked_by_acl": 0
+     }
+    ]
+   },
+   "pre_filter": {
+    "mode": "pre_filter",
+    "tau": 0.0,
+    "n_answer": 95,
+    "n_deny": 37,
+    "recall@3": 0.8947368421052632,
+    "full_hit@3": 0.8842105263157894,
+    "avg_returned": 2.126315789473684,
+    "empty_rate": 0.021052631578947368,
+    "leak_rate_all": 0.0,
+    "probe_leak": 0.0,
+    "false_refusal": 0.021052631578947368,
+    "correct_refusal": 0.16216216216216217,
+    "recall_by_tag": {
+     "colloquial": [
+      0.75,
+      12
+     ],
+     "cross_doc": [
+      0.8,
+      10
+     ],
+     "plain": [
+      0.9384615384615385,
+      65
+     ],
+     "zh_mix": [
+      0.875,
+      8
+     ]
+    },
+    "misses": [
+     {
+      "id": "A07",
+      "role": "employee",
+      "question": "I clicked a link in a suspicious email, who do I tell and how fast?",
+      "gold": [
+       "D06"
+      ],
+      "returned": [
+       "D29"
+      ],
+      "scores": [
+       12.9445,
+       8.4171,
+       8.2033
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A13",
+      "role": "risk_analyst",
+      "question": "What happens when one phone submits lots of applications in a day?",
+      "gold": [
+       "D10"
+      ],
+      "returned": [
+       "D47",
+       "D38",
+       "D23"
+      ],
+      "scores": [
+       7.563,
+       6.033,
+       5.584
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A19",
+      "role": "compliance_officer",
+      "question": "What's the process if customer personal data gets leaked?",
+      "gold": [
+       "D14"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       13.6553,
+       13.3374,
+       12.975
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A38",
+      "role": "employee",
+      "question": "how much holiday do i get lol",
+      "gold": [
+       "D01"
+      ],
+      "returned": [
+       "D30",
+       "D43"
+      ],
+      "scores": [
+       4.7851,
+       4.5803
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A39",
+      "role": "employee",
+      "question": "when's payday",
+      "gold": [
+       "D30"
+      ],
+      "returned": [
+       "D05",
+       "D38",
+       "D58"
+      ],
+      "scores": [
+       2.5542,
+       2.5192,
+       2.5192
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A43",
+      "role": "employee",
+      "question": "lost my laptop on the MRT, what now",
+      "gold": [
+       "D67",
+       "D06"
+      ],
+      "returned": [
+       "D67",
+       "D02"
+      ],
+      "scores": [
+       9.476,
+       7.5399,
+       4.0926
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A44",
+      "role": "employee",
+      "question": "I accidentally emailed a customer's statement to the wrong person, what should I do?",
+      "gold": [
+       "D56",
+       "D06"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       10.2157,
+       6.0679,
+       5.8613
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A51",
+      "role": "employee",
+      "question": "who sits on the exco?",
+      "gold": [
+       "D63"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A54",
+      "role": "employee",
+      "question": "how many customers do we have now",
+      "gold": [
+       "D60"
+      ],
+      "returned": [
+       "D05",
+       "D35"
+      ],
+      "scores": [
+       3.6037,
+       3.2276,
+       3.042
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A83",
+      "role": "hr_manager",
+      "question": "PIP 一般多长时间？",
+      "gold": [
+       "D34"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A86",
+      "role": "hr_manager",
+      "question": "someone's been rated 1 twice, what now",
+      "gold": [
+       "D17",
+       "D34"
+      ],
+      "returned": [
+       "D31",
+       "D36",
+       "D05"
+      ],
+      "scores": [
+       8.8718,
+       7.9525,
+       7.1341
+      ],
+      "blocked_by_acl": 0
+     }
+    ]
+   }
+  },
+  "exp2": [
+   {
+    "mode": "pre_filter",
+    "tau": 0,
+    "n_answer": 95,
+    "n_deny": 37,
+    "recall@3": 0.8947368421052632,
+    "full_hit@3": 0.8842105263157894,
+    "avg_returned": 2.126315789473684,
+    "empty_rate": 0.021052631578947368,
+    "leak_rate_all": 0.0,
+    "probe_leak": 0.0,
+    "false_refusal": 0.021052631578947368,
+    "correct_refusal": 0.16216216216216217,
+    "recall_by_tag": {
+     "colloquial": [
+      0.75,
+      12
+     ],
+     "cross_doc": [
+      0.8,
+      10
+     ],
+     "plain": [
+      0.9384615384615385,
+      65
+     ],
+     "zh_mix": [
+      0.875,
+      8
+     ]
+    },
+    "misses": [
+     {
+      "id": "A07",
+      "role": "employee",
+      "question": "I clicked a link in a suspicious email, who do I tell and how fast?",
+      "gold": [
+       "D06"
+      ],
+      "returned": [
+       "D29"
+      ],
+      "scores": [
+       12.9445,
+       8.4171,
+       8.2033
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A13",
+      "role": "risk_analyst",
+      "question": "What happens when one phone submits lots of applications in a day?",
+      "gold": [
+       "D10"
+      ],
+      "returned": [
+       "D47",
+       "D38",
+       "D23"
+      ],
+      "scores": [
+       7.563,
+       6.033,
+       5.584
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A19",
+      "role": "compliance_officer",
+      "question": "What's the process if customer personal data gets leaked?",
+      "gold": [
+       "D14"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       13.6553,
+       13.3374,
+       12.975
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A38",
+      "role": "employee",
+      "question": "how much holiday do i get lol",
+      "gold": [
+       "D01"
+      ],
+      "returned": [
+       "D30",
+       "D43"
+      ],
+      "scores": [
+       4.7851,
+       4.5803
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A39",
+      "role": "employee",
+      "question": "when's payday",
+      "gold": [
+       "D30"
+      ],
+      "returned": [
+       "D05",
+       "D38",
+       "D58"
+      ],
+      "scores": [
+       2.5542,
+       2.5192,
+       2.5192
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A43",
+      "role": "employee",
+      "question": "lost my laptop on the MRT, what now",
+      "gold": [
+       "D67",
+       "D06"
+      ],
+      "returned": [
+       "D67",
+       "D02"
+      ],
+      "scores": [
+       9.476,
+       7.5399,
+       4.0926
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A44",
+      "role": "employee",
+      "question": "I accidentally emailed a customer's statement to the wrong person, what should I do?",
+      "gold": [
+       "D56",
+       "D06"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       10.2157,
+       6.0679,
+       5.8613
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A51",
+      "role": "employee",
+      "question": "who sits on the exco?",
+      "gold": [
+       "D63"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A54",
+      "role": "employee",
+      "question": "how many customers do we have now",
+      "gold": [
+       "D60"
+      ],
+      "returned": [
+       "D05",
+       "D35"
+      ],
+      "scores": [
+       3.6037,
+       3.2276,
+       3.042
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A83",
+      "role": "hr_manager",
+      "question": "PIP 一般多长时间？",
+      "gold": [
+       "D34"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A86",
+      "role": "hr_manager",
+      "question": "someone's been rated 1 twice, what now",
+      "gold": [
+       "D17",
+       "D34"
+      ],
+      "returned": [
+       "D31",
+       "D36",
+       "D05"
+      ],
+      "scores": [
+       8.8718,
+       7.9525,
+       7.1341
+      ],
+      "blocked_by_acl": 0
+     }
+    ]
+   },
+   {
+    "mode": "pre_filter",
+    "tau": 2,
+    "n_answer": 95,
+    "n_deny": 37,
+    "recall@3": 0.8947368421052632,
+    "full_hit@3": 0.8842105263157894,
+    "avg_returned": 2.126315789473684,
+    "empty_rate": 0.021052631578947368,
+    "leak_rate_all": 0.0,
+    "probe_leak": 0.0,
+    "false_refusal": 0.021052631578947368,
+    "correct_refusal": 0.16216216216216217,
+    "recall_by_tag": {
+     "colloquial": [
+      0.75,
+      12
+     ],
+     "cross_doc": [
+      0.8,
+      10
+     ],
+     "plain": [
+      0.9384615384615385,
+      65
+     ],
+     "zh_mix": [
+      0.875,
+      8
+     ]
+    },
+    "misses": [
+     {
+      "id": "A07",
+      "role": "employee",
+      "question": "I clicked a link in a suspicious email, who do I tell and how fast?",
+      "gold": [
+       "D06"
+      ],
+      "returned": [
+       "D29"
+      ],
+      "scores": [
+       12.9445,
+       8.4171,
+       8.2033
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A13",
+      "role": "risk_analyst",
+      "question": "What happens when one phone submits lots of applications in a day?",
+      "gold": [
+       "D10"
+      ],
+      "returned": [
+       "D47",
+       "D38",
+       "D23"
+      ],
+      "scores": [
+       7.563,
+       6.033,
+       5.584
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A19",
+      "role": "compliance_officer",
+      "question": "What's the process if customer personal data gets leaked?",
+      "gold": [
+       "D14"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       13.6553,
+       13.3374,
+       12.975
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A38",
+      "role": "employee",
+      "question": "how much holiday do i get lol",
+      "gold": [
+       "D01"
+      ],
+      "returned": [
+       "D30",
+       "D43"
+      ],
+      "scores": [
+       4.7851,
+       4.5803
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A39",
+      "role": "employee",
+      "question": "when's payday",
+      "gold": [
+       "D30"
+      ],
+      "returned": [
+       "D05",
+       "D38",
+       "D58"
+      ],
+      "scores": [
+       2.5542,
+       2.5192,
+       2.5192
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A43",
+      "role": "employee",
+      "question": "lost my laptop on the MRT, what now",
+      "gold": [
+       "D67",
+       "D06"
+      ],
+      "returned": [
+       "D67",
+       "D02"
+      ],
+      "scores": [
+       9.476,
+       7.5399,
+       4.0926
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A44",
+      "role": "employee",
+      "question": "I accidentally emailed a customer's statement to the wrong person, what should I do?",
+      "gold": [
+       "D56",
+       "D06"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       10.2157,
+       6.0679,
+       5.8613
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A51",
+      "role": "employee",
+      "question": "who sits on the exco?",
+      "gold": [
+       "D63"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A54",
+      "role": "employee",
+      "question": "how many customers do we have now",
+      "gold": [
+       "D60"
+      ],
+      "returned": [
+       "D05",
+       "D35"
+      ],
+      "scores": [
+       3.6037,
+       3.2276,
+       3.042
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A83",
+      "role": "hr_manager",
+      "question": "PIP 一般多长时间？",
+      "gold": [
+       "D34"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A86",
+      "role": "hr_manager",
+      "question": "someone's been rated 1 twice, what now",
+      "gold": [
+       "D17",
+       "D34"
+      ],
+      "returned": [
+       "D31",
+       "D36",
+       "D05"
+      ],
+      "scores": [
+       8.8718,
+       7.9525,
+       7.1341
+      ],
+      "blocked_by_acl": 0
+     }
+    ]
+   },
+   {
+    "mode": "pre_filter",
+    "tau": 3,
+    "n_answer": 95,
+    "n_deny": 37,
+    "recall@3": 0.8947368421052632,
+    "full_hit@3": 0.8842105263157894,
+    "avg_returned": 2.094736842105263,
+    "empty_rate": 0.031578947368421054,
+    "leak_rate_all": 0.0,
+    "probe_leak": 0.0,
+    "false_refusal": 0.031578947368421054,
+    "correct_refusal": 0.16216216216216217,
+    "recall_by_tag": {
+     "colloquial": [
+      0.75,
+      12
+     ],
+     "cross_doc": [
+      0.8,
+      10
+     ],
+     "plain": [
+      0.9384615384615385,
+      65
+     ],
+     "zh_mix": [
+      0.875,
+      8
+     ]
+    },
+    "misses": [
+     {
+      "id": "A07",
+      "role": "employee",
+      "question": "I clicked a link in a suspicious email, who do I tell and how fast?",
+      "gold": [
+       "D06"
+      ],
+      "returned": [
+       "D29"
+      ],
+      "scores": [
+       12.9445,
+       8.4171,
+       8.2033
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A13",
+      "role": "risk_analyst",
+      "question": "What happens when one phone submits lots of applications in a day?",
+      "gold": [
+       "D10"
+      ],
+      "returned": [
+       "D47",
+       "D38",
+       "D23"
+      ],
+      "scores": [
+       7.563,
+       6.033,
+       5.584
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A19",
+      "role": "compliance_officer",
+      "question": "What's the process if customer personal data gets leaked?",
+      "gold": [
+       "D14"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       13.6553,
+       13.3374,
+       12.975
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A38",
+      "role": "employee",
+      "question": "how much holiday do i get lol",
+      "gold": [
+       "D01"
+      ],
+      "returned": [
+       "D30",
+       "D43"
+      ],
+      "scores": [
+       4.7851,
+       4.5803
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A39",
+      "role": "employee",
+      "question": "when's payday",
+      "gold": [
+       "D30"
+      ],
+      "returned": [],
+      "scores": [
+       2.5542,
+       2.5192,
+       2.5192
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A43",
+      "role": "employee",
+      "question": "lost my laptop on the MRT, what now",
+      "gold": [
+       "D67",
+       "D06"
+      ],
+      "returned": [
+       "D67",
+       "D02"
+      ],
+      "scores": [
+       9.476,
+       7.5399,
+       4.0926
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A44",
+      "role": "employee",
+      "question": "I accidentally emailed a customer's statement to the wrong person, what should I do?",
+      "gold": [
+       "D56",
+       "D06"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       10.2157,
+       6.0679,
+       5.8613
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A51",
+      "role": "employee",
+      "question": "who sits on the exco?",
+      "gold": [
+       "D63"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A54",
+      "role": "employee",
+      "question": "how many customers do we have now",
+      "gold": [
+       "D60"
+      ],
+      "returned": [
+       "D05",
+       "D35"
+      ],
+      "scores": [
+       3.6037,
+       3.2276,
+       3.042
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A83",
+      "role": "hr_manager",
+      "question": "PIP 一般多长时间？",
+      "gold": [
+       "D34"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A86",
+      "role": "hr_manager",
+      "question": "someone's been rated 1 twice, what now",
+      "gold": [
+       "D17",
+       "D34"
+      ],
+      "returned": [
+       "D31",
+       "D36",
+       "D05"
+      ],
+      "scores": [
+       8.8718,
+       7.9525,
+       7.1341
+      ],
+      "blocked_by_acl": 0
+     }
+    ]
+   },
+   {
+    "mode": "pre_filter",
+    "tau": 4,
+    "n_answer": 95,
+    "n_deny": 37,
+    "recall@3": 0.8947368421052632,
+    "full_hit@3": 0.8842105263157894,
+    "avg_returned": 2.0736842105263156,
+    "empty_rate": 0.042105263157894736,
+    "leak_rate_all": 0.0,
+    "probe_leak": 0.0,
+    "false_refusal": 0.042105263157894736,
+    "correct_refusal": 0.35135135135135137,
+    "recall_by_tag": {
+     "colloquial": [
+      0.75,
+      12
+     ],
+     "cross_doc": [
+      0.8,
+      10
+     ],
+     "plain": [
+      0.9384615384615385,
+      65
+     ],
+     "zh_mix": [
+      0.875,
+      8
+     ]
+    },
+    "misses": [
+     {
+      "id": "A07",
+      "role": "employee",
+      "question": "I clicked a link in a suspicious email, who do I tell and how fast?",
+      "gold": [
+       "D06"
+      ],
+      "returned": [
+       "D29"
+      ],
+      "scores": [
+       12.9445,
+       8.4171,
+       8.2033
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A13",
+      "role": "risk_analyst",
+      "question": "What happens when one phone submits lots of applications in a day?",
+      "gold": [
+       "D10"
+      ],
+      "returned": [
+       "D47",
+       "D38",
+       "D23"
+      ],
+      "scores": [
+       7.563,
+       6.033,
+       5.584
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A19",
+      "role": "compliance_officer",
+      "question": "What's the process if customer personal data gets leaked?",
+      "gold": [
+       "D14"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       13.6553,
+       13.3374,
+       12.975
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A38",
+      "role": "employee",
+      "question": "how much holiday do i get lol",
+      "gold": [
+       "D01"
+      ],
+      "returned": [
+       "D30",
+       "D43"
+      ],
+      "scores": [
+       4.7851,
+       4.5803
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A39",
+      "role": "employee",
+      "question": "when's payday",
+      "gold": [
+       "D30"
+      ],
+      "returned": [],
+      "scores": [
+       2.5542,
+       2.5192,
+       2.5192
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A43",
+      "role": "employee",
+      "question": "lost my laptop on the MRT, what now",
+      "gold": [
+       "D67",
+       "D06"
+      ],
+      "returned": [
+       "D67",
+       "D02"
+      ],
+      "scores": [
+       9.476,
+       7.5399,
+       4.0926
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A44",
+      "role": "employee",
+      "question": "I accidentally emailed a customer's statement to the wrong person, what should I do?",
+      "gold": [
+       "D56",
+       "D06"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       10.2157,
+       6.0679,
+       5.8613
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A51",
+      "role": "employee",
+      "question": "who sits on the exco?",
+      "gold": [
+       "D63"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A54",
+      "role": "employee",
+      "question": "how many customers do we have now",
+      "gold": [
+       "D60"
+      ],
+      "returned": [],
+      "scores": [
+       3.6037,
+       3.2276,
+       3.042
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A83",
+      "role": "hr_manager",
+      "question": "PIP 一般多长时间？",
+      "gold": [
+       "D34"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A86",
+      "role": "hr_manager",
+      "question": "someone's been rated 1 twice, what now",
+      "gold": [
+       "D17",
+       "D34"
+      ],
+      "returned": [
+       "D31",
+       "D36",
+       "D05"
+      ],
+      "scores": [
+       8.8718,
+       7.9525,
+       7.1341
+      ],
+      "blocked_by_acl": 0
+     }
+    ]
+   },
+   {
+    "mode": "pre_filter",
+    "tau": 5,
+    "n_answer": 95,
+    "n_deny": 37,
+    "recall@3": 0.8736842105263158,
+    "full_hit@3": 0.8631578947368421,
+    "avg_returned": 2.0105263157894737,
+    "empty_rate": 0.07368421052631578,
+    "leak_rate_all": 0.0,
+    "probe_leak": 0.0,
+    "false_refusal": 0.07368421052631578,
+    "correct_refusal": 0.5945945945945946,
+    "recall_by_tag": {
+     "colloquial": [
+      0.75,
+      12
+     ],
+     "cross_doc": [
+      0.8,
+      10
+     ],
+     "plain": [
+      0.9230769230769231,
+      65
+     ],
+     "zh_mix": [
+      0.75,
+      8
+     ]
+    },
+    "misses": [
+     {
+      "id": "A07",
+      "role": "employee",
+      "question": "I clicked a link in a suspicious email, who do I tell and how fast?",
+      "gold": [
+       "D06"
+      ],
+      "returned": [
+       "D29"
+      ],
+      "scores": [
+       12.9445,
+       8.4171,
+       8.2033
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A13",
+      "role": "risk_analyst",
+      "question": "What happens when one phone submits lots of applications in a day?",
+      "gold": [
+       "D10"
+      ],
+      "returned": [
+       "D47",
+       "D38",
+       "D23"
+      ],
+      "scores": [
+       7.563,
+       6.033,
+       5.584
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A19",
+      "role": "compliance_officer",
+      "question": "What's the process if customer personal data gets leaked?",
+      "gold": [
+       "D14"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       13.6553,
+       13.3374,
+       12.975
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A38",
+      "role": "employee",
+      "question": "how much holiday do i get lol",
+      "gold": [
+       "D01"
+      ],
+      "returned": [],
+      "scores": [
+       4.7851,
+       4.5803
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A39",
+      "role": "employee",
+      "question": "when's payday",
+      "gold": [
+       "D30"
+      ],
+      "returned": [],
+      "scores": [
+       2.5542,
+       2.5192,
+       2.5192
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A41",
+      "role": "employee",
+      "question": "报销 client dinner 最多多少钱？",
+      "gold": [
+       "D03"
+      ],
+      "returned": [],
+      "scores": [
+       4.3041,
+       3.7731
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A43",
+      "role": "employee",
+      "question": "lost my laptop on the MRT, what now",
+      "gold": [
+       "D67",
+       "D06"
+      ],
+      "returned": [
+       "D67",
+       "D02"
+      ],
+      "scores": [
+       9.476,
+       7.5399,
+       4.0926
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A44",
+      "role": "employee",
+      "question": "I accidentally emailed a customer's statement to the wrong person, what should I do?",
+      "gold": [
+       "D56",
+       "D06"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       10.2157,
+       6.0679,
+       5.8613
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A45",
+      "role": "employee",
+      "question": "what do I need to get promoted",
+      "gold": [
+       "D35"
+      ],
+      "returned": [],
+      "scores": [
+       4.8399,
+       4.1323,
+       3.8189
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A51",
+      "role": "employee",
+      "question": "who sits on the exco?",
+      "gold": [
+       "D63"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A54",
+      "role": "employee",
+      "question": "how many customers do we have now",
+      "gold": [
+       "D60"
+      ],
+      "returned": [],
+      "scores": [
+       3.6037,
+       3.2276,
+       3.042
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A83",
+      "role": "hr_manager",
+      "question": "PIP 一般多长时间？",
+      "gold": [
+       "D34"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A86",
+      "role": "hr_manager",
+      "question": "someone's been rated 1 twice, what now",
+      "gold": [
+       "D17",
+       "D34"
+      ],
+      "returned": [
+       "D31",
+       "D36",
+       "D05"
+      ],
+      "scores": [
+       8.8718,
+       7.9525,
+       7.1341
+      ],
+      "blocked_by_acl": 0
+     }
+    ]
+   },
+   {
+    "mode": "pre_filter",
+    "tau": 6,
+    "n_answer": 95,
+    "n_deny": 37,
+    "recall@3": 0.8631578947368421,
+    "full_hit@3": 0.8526315789473684,
+    "avg_returned": 1.9789473684210526,
+    "empty_rate": 0.08421052631578947,
+    "leak_rate_all": 0.0,
+    "probe_leak": 0.0,
+    "false_refusal": 0.08421052631578947,
+    "correct_refusal": 0.7297297297297297,
+    "recall_by_tag": {
+     "colloquial": [
+      0.75,
+      12
+     ],
+     "cross_doc": [
+      0.8,
+      10
+     ],
+     "plain": [
+      0.9076923076923077,
+      65
+     ],
+     "zh_mix": [
+      0.75,
+      8
+     ]
+    },
+    "misses": [
+     {
+      "id": "A03",
+      "role": "employee",
+      "question": "How often do I need to change my password?",
+      "gold": [
+       "D02"
+      ],
+      "returned": [],
+      "scores": [
+       5.1989,
+       4.3091,
+       4.1323
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A07",
+      "role": "employee",
+      "question": "I clicked a link in a suspicious email, who do I tell and how fast?",
+      "gold": [
+       "D06"
+      ],
+      "returned": [
+       "D29"
+      ],
+      "scores": [
+       12.9445,
+       8.4171,
+       8.2033
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A13",
+      "role": "risk_analyst",
+      "question": "What happens when one phone submits lots of applications in a day?",
+      "gold": [
+       "D10"
+      ],
+      "returned": [
+       "D47",
+       "D38",
+       "D23"
+      ],
+      "scores": [
+       7.563,
+       6.033,
+       5.584
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A19",
+      "role": "compliance_officer",
+      "question": "What's the process if customer personal data gets leaked?",
+      "gold": [
+       "D14"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       13.6553,
+       13.3374,
+       12.975
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A38",
+      "role": "employee",
+      "question": "how much holiday do i get lol",
+      "gold": [
+       "D01"
+      ],
+      "returned": [],
+      "scores": [
+       4.7851,
+       4.5803
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A39",
+      "role": "employee",
+      "question": "when's payday",
+      "gold": [
+       "D30"
+      ],
+      "returned": [],
+      "scores": [
+       2.5542,
+       2.5192,
+       2.5192
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A41",
+      "role": "employee",
+      "question": "报销 client dinner 最多多少钱？",
+      "gold": [
+       "D03"
+      ],
+      "returned": [],
+      "scores": [
+       4.3041,
+       3.7731
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A43",
+      "role": "employee",
+      "question": "lost my laptop on the MRT, what now",
+      "gold": [
+       "D67",
+       "D06"
+      ],
+      "returned": [
+       "D67",
+       "D02"
+      ],
+      "scores": [
+       9.476,
+       7.5399,
+       4.0926
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A44",
+      "role": "employee",
+      "question": "I accidentally emailed a customer's statement to the wrong person, what should I do?",
+      "gold": [
+       "D56",
+       "D06"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       10.2157,
+       6.0679,
+       5.8613
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A45",
+      "role": "employee",
+      "question": "what do I need to get promoted",
+      "gold": [
+       "D35"
+      ],
+      "returned": [],
+      "scores": [
+       4.8399,
+       4.1323,
+       3.8189
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A51",
+      "role": "employee",
+      "question": "who sits on the exco?",
+      "gold": [
+       "D63"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A54",
+      "role": "employee",
+      "question": "how many customers do we have now",
+      "gold": [
+       "D60"
+      ],
+      "returned": [],
+      "scores": [
+       3.6037,
+       3.2276,
+       3.042
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A83",
+      "role": "hr_manager",
+      "question": "PIP 一般多长时间？",
+      "gold": [
+       "D34"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A86",
+      "role": "hr_manager",
+      "question": "someone's been rated 1 twice, what now",
+      "gold": [
+       "D17",
+       "D34"
+      ],
+      "returned": [
+       "D31",
+       "D36",
+       "D05"
+      ],
+      "scores": [
+       8.8718,
+       7.9525,
+       7.1341
+      ],
+      "blocked_by_acl": 0
+     }
+    ]
+   },
+   {
+    "mode": "pre_filter",
+    "tau": 8,
+    "n_answer": 95,
+    "n_deny": 37,
+    "recall@3": 0.8210526315789474,
+    "full_hit@3": 0.8105263157894737,
+    "avg_returned": 1.8421052631578947,
+    "empty_rate": 0.1368421052631579,
+    "leak_rate_all": 0.0,
+    "probe_leak": 0.0,
+    "false_refusal": 0.1368421052631579,
+    "correct_refusal": 0.8918918918918919,
+    "recall_by_tag": {
+     "colloquial": [
+      0.5833333333333334,
+      12
+     ],
+     "cross_doc": [
+      0.8,
+      10
+     ],
+     "plain": [
+      0.8769230769230769,
+      65
+     ],
+     "zh_mix": [
+      0.75,
+      8
+     ]
+    },
+    "misses": [
+     {
+      "id": "A03",
+      "role": "employee",
+      "question": "How often do I need to change my password?",
+      "gold": [
+       "D02"
+      ],
+      "returned": [],
+      "scores": [
+       5.1989,
+       4.3091,
+       4.1323
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A07",
+      "role": "employee",
+      "question": "I clicked a link in a suspicious email, who do I tell and how fast?",
+      "gold": [
+       "D06"
+      ],
+      "returned": [
+       "D29"
+      ],
+      "scores": [
+       12.9445,
+       8.4171,
+       8.2033
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A09",
+      "role": "employee",
+      "question": "When do performance reviews happen?",
+      "gold": [
+       "D25"
+      ],
+      "returned": [],
+      "scores": [
+       7.5418,
+       6.7859,
+       4.856
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A13",
+      "role": "risk_analyst",
+      "question": "What happens when one phone submits lots of applications in a day?",
+      "gold": [
+       "D10"
+      ],
+      "returned": [],
+      "scores": [
+       7.563,
+       6.033,
+       5.584
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A19",
+      "role": "compliance_officer",
+      "question": "What's the process if customer personal data gets leaked?",
+      "gold": [
+       "D14"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       13.6553,
+       13.3374,
+       12.975
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A38",
+      "role": "employee",
+      "question": "how much holiday do i get lol",
+      "gold": [
+       "D01"
+      ],
+      "returned": [],
+      "scores": [
+       4.7851,
+       4.5803
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A39",
+      "role": "employee",
+      "question": "when's payday",
+      "gold": [
+       "D30"
+      ],
+      "returned": [],
+      "scores": [
+       2.5542,
+       2.5192,
+       2.5192
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A41",
+      "role": "employee",
+      "question": "报销 client dinner 最多多少钱？",
+      "gold": [
+       "D03"
+      ],
+      "returned": [],
+      "scores": [
+       4.3041,
+       3.7731
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A43",
+      "role": "employee",
+      "question": "lost my laptop on the MRT, what now",
+      "gold": [
+       "D67",
+       "D06"
+      ],
+      "returned": [
+       "D67",
+       "D02"
+      ],
+      "scores": [
+       9.476,
+       7.5399,
+       4.0926
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A44",
+      "role": "employee",
+      "question": "I accidentally emailed a customer's statement to the wrong person, what should I do?",
+      "gold": [
+       "D56",
+       "D06"
+      ],
+      "returned": [
+       "D56"
+      ],
+      "scores": [
+       10.2157,
+       6.0679,
+       5.8613
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A45",
+      "role": "employee",
+      "question": "what do I need to get promoted",
+      "gold": [
+       "D35"
+      ],
+      "returned": [],
+      "scores": [
+       4.8399,
+       4.1323,
+       3.8189
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A51",
+      "role": "employee",
+      "question": "who sits on the exco?",
+      "gold": [
+       "D63"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A54",
+      "role": "employee",
+      "question": "how many customers do we have now",
+      "gold": [
+       "D60"
+      ],
+      "returned": [],
+      "scores": [
+       3.6037,
+       3.2276,
+       3.042
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A55",
+      "role": "employee",
+      "question": "yo what time does the office close",
+      "gold": [
+       "D70"
+      ],
+      "returned": [],
+      "scores": [
+       6.3023,
+       5.8451,
+       4.0492
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A72",
+      "role": "compliance_officer",
+      "question": "any whistleblowing cases about collections?",
+      "gold": [
+       "D54"
+      ],
+      "returned": [],
+      "scores": [
+       6.455,
+       6.3416,
+       6.2052
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A73",
+      "role": "compliance_officer",
+      "question": "which vendors are missing a BCP test this year",
+      "gold": [
+       "D57"
+      ],
+      "returned": [],
+      "scores": [
+       7.5906,
+       7.1775,
+       5.9045
+      ],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A83",
+      "role": "hr_manager",
+      "question": "PIP 一般多长时间？",
+      "gold": [
+       "D34"
+      ],
+      "returned": [],
+      "scores": [],
+      "blocked_by_acl": 0
+     },
+     {
+      "id": "A86",
+      "role": "hr_manager",
+      "question": "someone's been rated 1 twice, what now",
+      "gold": [
+       "D17",
+       "D34"
+      ],
+      "returned": [
+       "D31",
+       "D36",
+       "D05"
+      ],
+      "scores": [
+       8.8718,
+       7.9525,
+       7.1341
+      ],
+      "blocked_by_acl": 0
+     }
+    ]
+   }
+  ]
+ }
+}

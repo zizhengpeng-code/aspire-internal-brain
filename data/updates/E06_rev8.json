@@ -1,0 +1,13 @@
+{
+  "id": "E06",
+  "source": "confluence",
+  "title": "Runbook: payment-service incident",
+  "department": "Engineering",
+  "sensitivity": "internal",
+  "acl": {"space": "payment-gateway", "restrictions": {}},
+  "updated_at": "2026-10-14T13:00:00+08:00",
+  "url": "https://confluence.lumenpay.example/payment-gateway/E06",
+  "links": ["E16"],
+  "canary": "PGW-RB-8",
+  "text": "Runbook: payment-service incident (PGW-RB-8, rev 8, updated 2026-10-14 13:00). 1. Confirm the alert: check the payment-service error rate on the operations dashboard. 2. Check the PSP connectivity page to confirm whether the failure is on our side or the provider's. 3. If transactions are failing, enable queue drain mode to protect the ledger. 4. Escalate to the on-call SRE and open an incident channel. 4a. If the primary PSP returns more than 5% 5xx for 3 minutes, fail over to the secondary PSP by setting feature flag `psp_failover=on`. Do not change other feature flags without the incident commander's approval."
+}
