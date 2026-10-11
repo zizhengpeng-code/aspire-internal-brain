@@ -30,6 +30,17 @@ def is_refusal(answer):
     return (answer or "").strip() in (REFUSAL_EN, REFUSAL_ZH)
 
 
+def filter_history(history, user_id):
+    """Drop the turns whose cited documents the user can no longer read.
+
+    Multi-turn history keeps only (question, guarded answer, citations) — never the
+    tool outputs. Re-checking the citations before each turn stops the model from
+    reciting, from memory, content that has just been revoked.
+    """
+    visible = authz.list_readable(user_id)
+    return [turn for turn in history if set(turn.get("citations") or []) <= visible]
+
+
 def check(answer, seen_ids, user_id):
     text = (answer or "").strip()
     if not text:

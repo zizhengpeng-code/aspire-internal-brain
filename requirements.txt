@@ -3,5 +3,6 @@ chromadb==1.5.9
 langchain-chroma==1.1.0
 langchain-openai==1.6.7
 langchain-core==1.6.6
+langgraph==1.2.14
 openpyxl==3.1.5   # review.py only
 openfga-sdk==0.10.5   # authz OpenFGA backend (optional; the local backend needs none)

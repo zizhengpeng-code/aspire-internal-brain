@@ -64,7 +64,7 @@ QUERY_AUDIT = {
         "parameters": {
             "type": "object",
             "properties": {
-                "user": {"type": "string", "description": "filter by user id"},
+                "subject": {"type": "string", "description": "filter by the user whose access to inspect (a query filter, not the caller's identity)"},
                 "doc": {"type": "string", "description": "filter by document id"},
                 "location_prefix": {"type": "string", "description": "filter by location prefix, e.g. 'confluence:payment-gateway'"},
                 "since": {"type": "string", "description": "ISO-8601 lower bound"},
@@ -166,7 +166,7 @@ def make_tools(session):
     def query_audit(args):
         if "compliance_officer" not in session.groups:
             return {"error": "not_found"}, {"event": "audit_query", "returned": [], "decisions": []}
-        records = session.audit.query(user=args.get("user"), doc=args.get("doc"),
+        records = session.audit.query(user=args.get("subject") or args.get("user"), doc=args.get("doc"),
                                       location_prefix=args.get("location_prefix"),
                                       since=args.get("since"), until=args.get("until"),
                                       decision=args.get("decision"))
