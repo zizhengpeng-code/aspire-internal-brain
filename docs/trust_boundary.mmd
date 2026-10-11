@@ -1,0 +1,44 @@
+flowchart TB
+  subgraph outside["OUTSIDE the trust boundary"]
+    direction TB
+    PROMPT["User prompt<br/>may contain a jailbreak"]
+    DOCTEXT["Document text<br/>may contain an injected instruction"]
+    MODEL["LLM<br/>proposes tool calls, drafts an answer"]
+  end
+
+  subgraph boundary["TRUST BOUNDARY — enforced in Python, never in the prompt"]
+    direction TB
+    IDENTITY["Identity<br/>user_id / session_id in the LangGraph runtime context"]
+    PERREQ["Per-request authorization<br/>check / list_readable on every call"]
+    GUARD["Answer guard<br/>every citation re-checked against live permissions"]
+    AUDIT["Audit<br/>hash chain + HMAC-signed checkpoints"]
+    NOEGRESS["No outbound capability<br/>no send, no fetch, no external API call"]
+  end
+
+  OUT["Answer + citation cards<br/>clickable URLs built from document metadata,<br/>never from model output"]
+
+  PROMPT --> MODEL
+  DOCTEXT --> MODEL
+  IDENTITY --> PERREQ
+  MODEL -->|"tool_calls: treated as data, not instructions"| PERREQ
+  PERREQ -->|"only documents the user may read"| MODEL
+  MODEL -->|"draft answer"| GUARD
+  GUARD --> AUDIT
+  GUARD --> OUT
+  NOEGRESS -.->|"no path from retrieved content back out"| OUT
+
+  subgraph trifecta["Lethal trifecta — one leg absent"]
+    direction LR
+    P["Private data<br/>present"]
+    U["Untrusted content<br/>present"]
+    E["Outbound path<br/>absent"]
+  end
+
+  OUT ~~~ trifecta
+
+  classDef bad fill:#ffe8e8,stroke:#c0392b,stroke-width:2px
+  classDef good fill:#e8f6ef,stroke:#1e8449,stroke-width:2px
+  class PROMPT,DOCTEXT,MODEL bad
+  class IDENTITY,PERREQ,GUARD,AUDIT,NOEGRESS good
+  class P,U bad
+  class E good

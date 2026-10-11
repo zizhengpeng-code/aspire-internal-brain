@@ -69,6 +69,19 @@ def update(doc_id, embeddings=None, persist_dir="index/chroma"):
     return stats
 
 
+def sync_index(embeddings=None, persist_dir="index/chroma", unit="chunk"):
+    """Bring the vector index in line with the corpus currently in force.
+
+    A running system keeps its index warm. Syncing *before* a demo is what makes the
+    following ``update`` a genuinely incremental one: exactly the changed document is
+    re-chunked and re-embedded, everything else is left alone.
+    """
+    from retrieval import VectorIndex
+    with open(authz.corpus_path(), encoding="utf-8") as f:
+        docs = json.load(f)["documents"]
+    return VectorIndex(None, unit, embeddings=embeddings, persist_dir=persist_dir).sync(docs)
+
+
 def revoke(user_id, channel):
     """Remove a user from a Slack channel in state/directory.json (effective immediately)."""
     with open(authz.directory_path(), encoding="utf-8") as f:

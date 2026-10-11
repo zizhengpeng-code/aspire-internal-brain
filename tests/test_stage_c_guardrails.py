@@ -13,6 +13,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import authz
+import guard
 import oversharing
 import sanitize
 import simulate
@@ -88,6 +89,39 @@ class SanitizeAnswer(unittest.TestCase):
     def test_html_is_escaped(self):
         out = sanitize.sanitize_answer("<script>alert(1)</script>")
         self.assertNotIn("<script>", out)
+
+
+class AnswerGuard(unittest.TestCase):
+    """The citation guard, including the audit-turn exception: a compliance answer is
+    grounded in audit records, so it may carry no document citation — but every citation it
+    does carry is still checked."""
+
+    def test_an_answer_without_citations_is_rejected(self):
+        ok, reason = guard.check("The migration is in progress.", [], "jdoe")
+        self.assertFalse(ok)
+        self.assertEqual(reason, "answer has no citations")
+
+    def test_a_document_answer_must_cite_a_document_returned_this_turn(self):
+        ok, reason = guard.check("The migration is in progress [E01].", [], "jdoe")
+        self.assertFalse(ok)
+        self.assertIn("not returned this turn", reason)
+        ok, _ = guard.check("The migration is in progress [E01].", ["E01"], "jdoe")
+        self.assertTrue(ok)
+
+    def test_a_citation_the_user_cannot_see_is_rejected(self):
+        ok, reason = guard.check("See [E09].", ["E09"], "jdoe")     # E09 is restricted
+        self.assertFalse(ok)
+        self.assertIn("cannot see", reason)
+
+    def test_an_audit_answer_may_carry_no_document_citation(self):
+        ok, reason = guard.check("2 records matched: jdoe opened E03 at 09:12.",
+                                 [], "glim", tools_used={"query_audit"})
+        self.assertTrue(ok, reason)
+
+    def test_the_audit_exception_does_not_relax_the_visibility_rule(self):
+        ok, reason = guard.check("jdoe opened [E09].", ["E09"], "glim", tools_used={"query_audit"})
+        self.assertFalse(ok)
+        self.assertIn("cannot see", reason)
 
 
 class OversharingAndAiScope(unittest.TestCase):

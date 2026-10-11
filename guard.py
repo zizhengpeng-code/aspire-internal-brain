@@ -8,7 +8,8 @@ Rules
 -----
 1. every cited doc id must have been returned by a tool *this turn*;
 2. every cited doc id must be visible to the user *right now* (re-checked);
-3. a non-refusal answer must cite at least one document.
+3. a non-refusal answer must cite at least one document — except on an audit turn
+   (``query_audit``), whose answer is grounded in audit records, not documents.
 """
 import re
 
@@ -41,14 +42,18 @@ def filter_history(history, user_id):
     return [turn for turn in history if set(turn.get("citations") or []) <= visible]
 
 
-def check(answer, seen_ids, user_id):
+def check(answer, seen_ids, user_id, tools_used=()):
+    """``tools_used`` are the tools called this turn. An audit answer (``query_audit``) is
+    grounded in audit records rather than documents, so it is allowed to carry no document
+    citation; every citation it *does* carry is still checked against rules 1 and 2."""
     text = (answer or "").strip()
     if not text:
         return False, "empty answer"
     if is_refusal(text):
         return True, "refusal template"
     cited = citations(text)
-    if not cited:
+    audit_turn = "query_audit" in set(tools_used)
+    if not cited and not audit_turn:
         return False, "answer has no citations"
     seen = set(seen_ids)
     not_returned = [c for c in cited if c not in seen]

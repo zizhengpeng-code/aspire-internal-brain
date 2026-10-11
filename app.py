@@ -111,6 +111,19 @@ def run_action(label, fn, reload_sessions=False):
     st.rerun()
 
 
+def warm_index():
+    """Keep the vector index in sync with the corpus currently in force.
+
+    A running system's index is already warm, which is what makes the next document
+    update a genuinely incremental one (only the changed document is re-embedded).
+    Best-effort: without embeddings configured the demo still runs, on BM25 alone.
+    """
+    try:
+        return simulate.sync_index()
+    except Exception as exc:                                   # noqa: BLE001 - demo only
+        return {"skipped": f"{type(exc).__name__}: {exc}"}
+
+
 def render_citations(citation_ids, docs):
     if not citation_ids:
         return
@@ -190,6 +203,7 @@ def page_admin():
     left, right = st.columns(2)
     with left:
         if st.button("Push runbook update (13:00)", use_container_width=True):
+            warm_index()          # the index a running system would already have
             run_action("Push runbook update (E06 → rev 8)", lambda: simulate.update("E06"),
                        reload_sessions=True)
         if st.button("Revoke jdoe from #payments-incident", use_container_width=True):

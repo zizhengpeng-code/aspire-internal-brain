@@ -1,0 +1,50 @@
+flowchart TB
+  subgraph client["Client — simulated SSO"]
+    UI["Streamlit UI<br/>login · chat · admin · compliance · ROI"]
+  end
+
+  subgraph untrusted["UNTRUSTED — the model"]
+    MODEL["LangGraph agent node<br/>the LLM only proposes tool calls<br/>and drafts an answer"]
+  end
+
+  subgraph trusted["TRUSTED — plain Python, outside the LLM"]
+    direction TB
+    TOOLNODE["tools node<br/>runs the proposed calls"]
+    GUARD["guard node<br/>citation check, else one refusal"]
+    TOOLS["Tool layer<br/>search · open_doc · follow_links<br/>query_audit (compliance only)"]
+    AUTHZ["Authorization — relationship tuples<br/>can_read = platform_viewer but not blocked"]
+    SCOPE["AI retrieval scope<br/>exclusion list"]
+    RET["Retriever<br/>candidate_ids pre-filter"]
+    SAN["sanitize_answer<br/>strip images and foreign URLs"]
+    AUDIT["Audit<br/>hash chain + signed checkpoints"]
+    ALERTS["Alerts<br/>restricted-deny burst"]
+    OVER["Over-sharing scan<br/>R1 / R2"]
+  end
+
+  CORPUS[("Corpus mirror<br/>Confluence · Jira · Slack · Google Drive")]
+  STATE[("state/ overrides data/<br/>live permission and content changes")]
+
+  UI -->|"user_id + session_id in the runtime context,<br/>never in the messages or tool arguments"| MODEL
+  MODEL -->|tool_calls| TOOLNODE
+  MODEL -->|"no tool calls"| GUARD
+  TOOLNODE --> TOOLS
+  TOOLS --> AUTHZ
+  TOOLS --> SCOPE
+  TOOLS --> RET
+  AUTHZ --> CORPUS
+  SCOPE --> CORPUS
+  RET --> CORPUS
+  CORPUS --> STATE
+  TOOLNODE --> AUDIT
+  GUARD --> AUDIT
+  GUARD --> SAN
+  SAN --> UI
+  AUDIT --> ALERTS
+  AUDIT --> OVER
+  ALERTS --> UI
+  OVER --> UI
+
+  classDef untrustedBox fill:#ffe8e8,stroke:#c0392b,stroke-width:2px
+  classDef trustedBox fill:#e8f6ef,stroke:#1e8449,stroke-width:2px
+  class MODEL untrustedBox
+  class TOOLNODE,GUARD,TOOLS,AUTHZ,SCOPE,RET,SAN,AUDIT,ALERTS,OVER trustedBox
