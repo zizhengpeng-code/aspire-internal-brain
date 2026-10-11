@@ -12,6 +12,9 @@ its top-k that the user may not see are recorded in the audit (doc id + decision
 never returned to the model. This is a deliberate trade-off (see the README): it makes
 the per-document allow/deny trail and the burst alert possible, at the cost of one
 extra retrieval per query.
+
+Payloads carry no URLs: the interface builds citation links from document metadata,
+so a URL never has to pass through the model.
 """
 import ai_scope
 import authz
@@ -122,8 +125,7 @@ def make_tools(session):
             doc = docs[hit.doc]
             results.append({"doc_id": hit.doc, "chunk_id": hit.chunk, "platform": doc.get("source"),
                             "location": authz.location(doc), "title": doc["title"],
-                            "updated_at": doc.get("updated_at"), "url": doc.get("url"),
-                            "snippet": doc["text"][:320]})
+                            "updated_at": doc.get("updated_at"), "snippet": doc["text"][:320]})
 
         shadow = session.kb.index.search(query, None)[:k]
         decisions = []
@@ -143,10 +145,22 @@ def make_tools(session):
         decision = _access(session, doc_id, doc)
         if not decision.allow:
             return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, doc, decision)]}
+        # Only list links the user could open: naming a hidden linked document would
+        # confirm that it exists. Withheld links are recorded in the audit, as in follow_links.
+        links, decisions = [], [_decision(doc_id, doc, decision)]
+        for link_id in doc.get("links", []):
+            linked = docs.get(link_id)
+            if linked is None:
+                continue
+            link_decision = _access(session, link_id, linked)
+            if link_decision.allow:
+                links.append(link_id)
+            else:
+                decisions.append(_decision(link_id, linked, link_decision))
         payload = {"doc_id": doc_id, "title": doc["title"], "platform": doc.get("source"),
                    "location": authz.location(doc), "updated_at": doc.get("updated_at"),
-                   "url": doc.get("url"), "text": doc["text"], "links": doc.get("links", [])}
-        return payload, {"returned": [doc_id], "decisions": [_decision(doc_id, doc, decision)]}
+                   "text": doc["text"], "links": links}
+        return payload, {"returned": [doc_id], "decisions": decisions}
 
     def follow_links(args):
         doc_id = args.get("doc_id")
@@ -164,8 +178,7 @@ def make_tools(session):
             if decision.allow:
                 returned.append(link_id)
                 links.append({"doc_id": link_id, "title": linked["title"], "platform": linked.get("source"),
-                              "location": authz.location(linked), "updated_at": linked.get("updated_at"),
-                              "url": linked.get("url")})
+                              "location": authz.location(linked), "updated_at": linked.get("updated_at")})
         return {"doc_id": doc_id, "links": links}, {"returned": returned, "decisions": decisions}
 
     def query_audit(args):

@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import ai_scope
 import authz
 import guard
 import simulate
@@ -22,6 +23,7 @@ from tools import make_tools
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = json.load(open(os.path.join(ROOT, "data", "corpus.json"), encoding="utf-8"))["documents"]
 
+DEMO_USERS = ["jdoe", "wlin", "sho", "atan", "glim"]
 HIDDEN_FOR_ATAN = ["E09", "E10", "E11", "E14", "E21"]
 ATAN_HIDDEN_CANARIES = ["INC-2026-0917", "FIDO2", "RR-H2-07", "psp-gw-02", "2027-03-31"]
 
@@ -94,6 +96,44 @@ class PageAndIssueRestrictions(AgentBase):
     def test_wlin_can_open_the_page_restricted_doc(self):
         _, call = make_tools(self.session("wlin"))
         self.assertEqual(call("open_doc", {"doc_id": "E08"})["doc_id"], "E08")
+
+
+class LinkMetadata(AgentBase):
+    """A link list is metadata too: naming a hidden linked document confirms it exists."""
+
+    def test_open_doc_does_not_name_a_hidden_linked_doc(self):
+        # E03 is in a public channel glim can read; the Jira ticket it links to (E02) is eng-only
+        _, call = make_tools(self.session("glim"))
+        payload = call("open_doc", {"doc_id": "E03"})
+        self.assertEqual(payload["doc_id"], "E03")
+        self.assertEqual(payload["links"], [])
+        self.assertNotIn("E02", json.dumps(payload))
+
+    def test_withheld_links_are_audited(self):
+        _, call = make_tools(self.session("glim"))
+        call("open_doc", {"doc_id": "E03"})
+        withheld = [d for d in self.audit.records()[-1]["decisions"] if d["doc_id"] == "E02"]
+        self.assertTrue(withheld)
+        self.assertFalse(withheld[0]["allow"])
+
+    def test_link_lists_only_name_docs_the_user_can_open(self):
+        for user in DEMO_USERS:
+            session = self.session(user)
+            _, call = make_tools(session)
+            openable = ai_scope.allowed_ids(authz.visible_ids(user), session.docs)
+            for doc_id in sorted(openable):
+                links = set(call("open_doc", {"doc_id": doc_id})["links"])
+                self.assertLessEqual(links, openable, (user, doc_id))
+                followed = {link["doc_id"] for link in call("follow_links", {"doc_id": doc_id})["links"]}
+                self.assertLessEqual(followed, openable, (user, doc_id))
+
+    def test_tool_payloads_carry_no_urls(self):
+        _, call = make_tools(self.session("jdoe"))
+        for result in call("search", {"query": "database migration blockers"})["results"]:
+            self.assertNotIn("url", result)
+        self.assertNotIn("url", call("open_doc", {"doc_id": "E01"}))
+        for link in call("follow_links", {"doc_id": "E01"})["links"]:
+            self.assertNotIn("url", link)
 
 
 class RunbookFreshness(AgentBase):
