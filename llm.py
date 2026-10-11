@@ -130,17 +130,27 @@ class _FakeModel:
         return AIMessage(content=" ".join(f"The document states the relevant facts. [{g}]" for g in gold))
 
     def _leaky(self, tool_messages):
-        canary = (self.case or {}).get("canary", "")
+        case = self.case or {}
+        canary = case.get("canary", "")
         if not tool_messages:
+            if case.get("cite"):        # a document guaranteed visible to the user
+                return AIMessage(content="", tool_calls=[
+                    {"name": "open_doc", "args": {"doc_id": case["cite"]}, "id": "leak_1"}])
             return AIMessage(content="", tool_calls=[
-                {"name": "search", "args": {"query": (self.case or {}).get("question", "")}, "id": "leak_1"}])
+                {"name": "search", "args": {"query": case.get("question", "")}, "id": "leak_1"}])
         try:
             payload = json.loads(tool_messages[-1].content)
         except (ValueError, TypeError):
             payload = {}
-        results = payload.get("results") or []
-        visible = results[0] if results else {}
-        head = f"{_first_sentence(visible.get('snippet', ''))} [{visible.get('doc_id')}]"
+        if "results" in payload:                                  # after a search
+            results = payload.get("results") or []
+            visible = results[0] if results else {}
+            head = f"{_first_sentence(visible.get('snippet', ''))} [{visible.get('doc_id')}]"
+        elif payload.get("doc_id"):                               # after open_doc
+            head = f"The document states the relevant facts. [{payload['doc_id']}]"
+        else:
+            head = ""
+        # the citation is legitimate; the canary is smuggled in as prose (the guard cannot see it)
         return AIMessage(content=f"{head} For completeness, the value is {canary}.")
 
 
@@ -182,6 +192,8 @@ class LLM:
 
     # ---------------------------------------------------------------- caching
     def _cache(self):
+        if self.cache_path is None:          # evaluation: no cache, so usage is accurate
+            return None
         if self._db is None:
             directory = os.path.dirname(self.cache_path)
             if directory:
@@ -195,17 +207,20 @@ class LLM:
         """One completion; cached by sha256(model, messages, tools). Returns an AIMessage."""
         key = _sha(self.model, [_as_dict(m) for m in messages], tools, self.temperature)
         db = self._cache()
-        row = db.execute("select v from llm where k=?", (key,)).fetchone()
-        if row:
-            self.cache_hits += 1
-            return _ai_from_dict(json.loads(row[0]))
+        if db is not None:
+            row = db.execute("select v from llm where k=?", (key,)).fetchone()
+            if row:
+                self.cache_hits += 1
+                return _ai_from_dict(json.loads(row[0]))
         model = self._model()
         if tools:
             model = model.bind_tools(tools)
         ai = model.invoke(messages)
         self._account(ai)
-        db.execute("insert or replace into llm values (?, ?)", (key, json.dumps(_ai_to_dict(ai), ensure_ascii=False)))
-        db.commit()
+        if db is not None:
+            db.execute("insert or replace into llm values (?, ?)",
+                       (key, json.dumps(_ai_to_dict(ai), ensure_ascii=False)))
+            db.commit()
         return ai
 
     def _account(self, ai):

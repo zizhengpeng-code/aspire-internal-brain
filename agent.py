@@ -63,6 +63,7 @@ class AgentState(TypedDict, total=False):
     citations: list
     refused: bool
     guard: str
+    raw: str          # the model's pre-guard text (evaluation only)
 
 
 class Session:
@@ -73,12 +74,16 @@ class Session:
     """
 
     def __init__(self, user_id, llm=None, audit=None, retriever="bm25", unit="chunk",
-                 audit_path=DEFAULT_AUDIT, session_id=None):
+                 audit_path=DEFAULT_AUDIT, session_id=None, ablate=None):
         self.user_id = user_id
         self.session_id = session_id or uuid.uuid4().hex[:12]
         self.retriever_name, self.unit = retriever, unit
         self.llm = llm or LLM()
         self.audit = audit or AuditLog(audit_path)
+        # Ablation switches used only by evaluate_agent.py: "no_search_filter" makes
+        # search skip the access-control pre-filter, "no_guard" makes the guard record
+        # its verdict without enforcing it. Never set in production.
+        self.ablate = set(ablate or [])
         self.reload()
 
     def reload(self):
@@ -104,12 +109,19 @@ def build_system_prompt(session):
 
 
 def _doc_ids(payload):
+    """Doc ids the tool *returned this turn* (what the guard checks citations against).
+
+    ``search`` -> the result ids; ``open_doc`` -> the single opened id (its ``links`` are
+    only references); ``follow_links`` -> the linked ids.
+    """
     if not isinstance(payload, dict) or "error" in payload:
         return []
     if "results" in payload:
         return [r["doc_id"] for r in payload["results"]]
-    if "links" in payload:
-        return [l["doc_id"] for l in payload["links"]]
+    if "title" in payload and "doc_id" in payload:          # open_doc
+        return [payload["doc_id"]]
+    if "links" in payload:                                   # follow_links
+        return [l["doc_id"] for l in payload["links"] if isinstance(l, dict)]
     if "doc_id" in payload:
         return [payload["doc_id"]]
     return []
@@ -118,9 +130,14 @@ def _doc_ids(payload):
 def _returned_count(payload):
     if not isinstance(payload, dict) or "error" in payload:
         return 0
-    for key in ("results", "links", "records"):
-        if key in payload:
-            return len(payload[key])
+    if "results" in payload:
+        return len(payload["results"])
+    if "records" in payload:
+        return len(payload["records"])
+    if "title" in payload and "doc_id" in payload:          # open_doc
+        return 1
+    if "links" in payload:                                   # follow_links
+        return len(payload["links"])
     return 1 if "doc_id" in payload else 0
 
 
@@ -153,15 +170,19 @@ def build_graph(session, max_rounds=MAX_ROUNDS):
     def guard_node(state, runtime):
         raw = state["messages"][-1].content or ""
         ok, reason = guard.check(raw, state.get("seen", []), session.user_id)
-        final = raw if ok else REFUSAL_EN
-        citations = guard.citations(final) if ok else []
-        refused = not ok or guard.is_refusal(final)
+        enforced = "no_guard" not in session.ablate      # ablation: record but do not enforce
+        if ok or not enforced:
+            final, citations = raw, guard.citations(raw)
+        else:
+            final, citations = REFUSAL_EN, []
+        refused = guard.is_refusal(final)
         session.audit.append({"event": "answer", "user_id": session.user_id, "groups": session.groups,
                               "session_id": session.session_id, "ts": session.clock(),
                               "answer": final, "citations": citations, "refused": refused,
-                              "guard_blocked": None if ok else reason, "model": session.llm.model})
+                              "guard_blocked": None if (ok or not enforced) else reason,
+                              "model": session.llm.model})
         session.audit.checkpoint()   # sign the chain head so a truncation is detectable
-        return {"answer": final, "citations": citations, "refused": refused, "guard": reason}
+        return {"answer": final, "citations": citations, "refused": refused, "guard": reason, "raw": raw}
 
     def route(state):
         last = state["messages"][-1]
@@ -182,9 +203,11 @@ def build_graph(session, max_rounds=MAX_ROUNDS):
 
 def answer(session, question, history=None, max_rounds=MAX_ROUNDS):
     """Run one question through the graph. Returns answer / citations / steps /
-    refused / usage / guard / history, and writes query, tool_call and answer events
-    to the audit log. `history` is the caller's list of {question, answer, citations};
-    rounds that cite documents the user can no longer read are dropped first."""
+    refused / usage / guard / raw_answer / history, and writes query, tool_call and
+    answer events to the audit log. `raw_answer` is the model's pre-guard text and is
+    for the evaluation only (never render it); `history` is the caller's list of
+    {question, answer, citations}; rounds that cite documents the user can no longer
+    read are dropped first."""
     llm = session.llm
     before = (llm.calls, llm.prompt_tokens, llm.completion_tokens, llm.cost, llm.cache_hits)
     session.audit.append({"event": "query", "user_id": session.user_id, "groups": session.groups,
@@ -211,4 +234,4 @@ def answer(session, question, history=None, max_rounds=MAX_ROUNDS):
                                "citations": final["citations"]}]
     return {"answer": final["answer"], "citations": final["citations"], "steps": final.get("steps", []),
             "refused": final["refused"], "usage": usage, "guard": final.get("guard"),
-            "history": history_out}
+            "raw_answer": final.get("raw"), "history": history_out}

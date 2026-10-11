@@ -99,8 +99,13 @@ def make_tools(session):
     def search(args):
         query = args.get("query", "")
         k = int(args.get("k") or 6)
-        candidates = authz.list_readable(session.user_id)
-        candidates = ai_scope.allowed_ids(candidates, docs)
+        if "no_search_filter" in session.ablate:
+            # ablation only: skip the access-control / scope pre-filter so the model
+            # sees the whole corpus. The guard still rejects citations of hidden docs.
+            candidates = set(docs)
+        else:
+            candidates = authz.list_readable(session.user_id)
+            candidates = ai_scope.allowed_ids(candidates, docs)
         platforms = set(args.get("platforms") or [])
         since = args.get("since")
         if platforms:
