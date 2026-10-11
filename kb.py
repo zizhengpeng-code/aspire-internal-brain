@@ -2,12 +2,18 @@
 swappable retriever (see retrieval.py: BM25 / vector / hybrid, doc or chunk level).
 """
 import json, time
+import acl
 from retrieval import BM25
 
 class RoleAwareKB:
     """mode: 'no_acl' | 'post_filter' | 'pre_filter'. k counts retrieval units
-    (docs at doc level, chunks at chunk level)."""
-    def __init__(self, corpus_path, mode="pre_filter", k=3, refuse_below=0.0, audit_path=None, retriever=None):
+    (docs at doc level, chunks at chunk level).
+
+    `corpus_path=None` uses the corpus currently in force (state/corpus.json when
+    present, else data/corpus.json) via acl. Access is always resolved through
+    acl.visible_ids, so it reflects the *current* directory state on every call."""
+    def __init__(self, corpus_path=None, mode="pre_filter", k=3, refuse_below=0.0, audit_path=None, retriever=None):
+        corpus_path = corpus_path or acl.corpus_path()
         with open(corpus_path, encoding="utf-8") as f:
             corpus = json.load(f)
         self.docs = {d["id"]: d for d in corpus["documents"]}
@@ -16,7 +22,9 @@ class RoleAwareKB:
         self.audit_path = audit_path
 
     def allowed(self, role):
-        return {i for i, d in self.docs.items() if role in d["allowed_roles"]}
+        """Documents the legacy role can see, resolved through the platform ACLs
+        (the five legacy roles map to persona_<role> users in the directory)."""
+        return acl.visible_ids("persona_" + role)
 
     def retrieve(self, role, query):
         allowed = self.allowed(role)

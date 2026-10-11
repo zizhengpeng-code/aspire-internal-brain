@@ -1,216 +1,1644 @@
 {
-  "company": "LumenPay (fictional Singapore consumer-credit fintech)",
-  "roles": ["employee", "risk_analyst", "compliance_officer", "hr_manager", "executive"],
-  "documents": [
-    {"id": "D01", "title": "Employee Handbook - Leave", "department": "HR", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Full-time employees receive 18 days of annual leave per calendar year, plus 14 days of outpatient sick leave. Up to 5 unused leave days can be carried forward to the next year and must be used by 31 March. Leave requests are submitted in the HR portal at least 5 working days in advance for absences longer than two days."},
-    {"id": "D02", "title": "IT Security Policy", "department": "IT", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "All staff must enable multi-factor authentication on email, VPN and the core lending console. Passwords must be at least 14 characters and are rotated every 90 days. Company laptops lock automatically after 5 minutes of inactivity. USB storage devices are blocked by default; exceptions require approval from the Head of IT Security."},
-    {"id": "D03", "title": "Expense Claims Policy", "department": "Finance", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Expense claims must be submitted within 30 days of the expense date with an itemised receipt. Client meal claims are capped at S$80 per person. Taxi claims are allowed only after 10pm or when carrying equipment. Claims above S$1,000 require approval from a department head."},
-    {"id": "D04", "title": "Hybrid Work Policy", "department": "HR", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Staff may work from home up to two days per week. Tuesdays and Thursdays are core office days when all teams are expected on site. Working from overseas requires written approval because of data residency restrictions on customer data."},
-    {"id": "D05", "title": "Product Overview", "department": "Product", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "LumenPay offers two consumer products in Singapore. LumenSplit is a buy-now-pay-later plan that splits a purchase into three interest-free instalments. LumenFlex is an unsecured instalment loan from S$1,000 to S$20,000 with tenors of 6 to 36 months. Merchants pay a fee of 3.5% on LumenSplit transactions."},
-    {"id": "D06", "title": "Security Incident Reporting", "department": "IT", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Any suspected security incident, including phishing emails, lost devices or unusual account activity, must be reported to the Security Operations team within one hour through the #sec-incident channel or security@lumenpay.example. Do not attempt to investigate the incident yourself."},
-    {"id": "D07", "title": "LumenFlex Credit Policy", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","compliance_officer","executive"],
-     "text": "Applicants for LumenFlex must be aged 21 to 65 with a minimum annual income of S$30,000. Applications with a credit bureau score below 1,800 are automatically declined. The maximum debt-to-income ratio is 45%, including the new loan. Manual underwriting review is required for loan amounts above S$15,000."},
-    {"id": "D08", "title": "Application Scorecard v3 Documentation", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","executive"],
-     "text": "Scorecard v3 is a logistic regression model trained on 2023 to 2025 LumenFlex applications. The top features by information value are months since last delinquency, revolving utilisation, and number of credit enquiries in the past six months. Out-of-time validation Gini is 0.52. The model is scheduled for recalibration in Q1 2027."},
-    {"id": "D09", "title": "Collections Strategy", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","executive"],
-     "text": "Accounts enter early collections at 1 day past due with an SMS reminder. Collection agent calls begin at 7 days past due. At 30 days past due a late fee of S$30 is applied and the account is flagged for hardship assessment. Accounts reaching 90 days past due are referred to an external collection agency and reported as non-performing."},
-    {"id": "D10", "title": "Fraud Detection Rules", "department": "Risk", "sensitivity": "restricted",
-     "allowed_roles": ["risk_analyst","executive"],
-     "text": "Rule F-12 blocks an application when the same device fingerprint is linked to more than three applications within 24 hours. Rule F-19 sends an application to manual review when the declared employer does not match the CPF contribution record. Fraud rule thresholds are reviewed monthly by the fraud strategy team."},
-    {"id": "D11", "title": "Risk Appetite Statement FY2026", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","compliance_officer","executive"],
-     "text": "The board has set the following risk appetite for FY2026: non-performing loan ratio below 3.5%, 30+ days-past-due roll rate below 8%, and single-merchant concentration of no more than 15% of LumenSplit volume. Any breach must be escalated to the Chief Risk Officer within two business days."},
-    {"id": "D12", "title": "AML and KYC Procedure", "department": "Compliance", "sensitivity": "confidential",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "All customers undergo identity verification through MyInfo before onboarding. Enhanced due diligence is required for politically exposed persons and for customers whose transactions exceed S$20,000 in a rolling 30-day window. Suspicious activity must be escalated to the Money Laundering Reporting Officer within one business day of detection."},
-    {"id": "D13", "title": "Internal Audit Findings 2025", "department": "Compliance", "sensitivity": "restricted",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "The 2025 internal audit raised three findings. First, 12% of sampled loan files lacked a documented affordability check. Second, user access reviews for the lending console were performed annually instead of quarterly. Third, two outsourced vendors had no current business continuity test. Remediation owners must close all findings by 31 December 2026."},
-    {"id": "D14", "title": "Personal Data Breach Response", "department": "Compliance", "sensitivity": "confidential",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "When a personal data breach is suspected, the Data Protection Officer must be informed immediately and an initial assessment completed within 24 hours. The Data Protection Officer decides whether the breach is notifiable and coordinates any notification to regulators and affected customers. All breach records are retained for five years."},
-    {"id": "D15", "title": "Regulatory Change Log Q3 2026", "department": "Compliance", "sensitivity": "confidential",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "Revised BNPL industry guidelines, tracked internally as RC-2026-07, will cap outstanding buy-now-pay-later balances at S$2,000 per customer from 1 March 2027. Compliance must update LumenSplit limits and customer disclosures before the effective date."},
-    {"id": "D16", "title": "Salary Bands 2026", "department": "HR", "sensitivity": "restricted",
-     "allowed_roles": ["hr_manager","executive"],
-     "text": "Monthly salary bands for 2026: Analyst S$4,800 to S$6,500; Senior Analyst S$6,500 to S$8,800; Manager S$9,000 to S$12,500. Annual increments are capped at 8% except on promotion. Salary band information is strictly confidential."},
-    {"id": "D17", "title": "Performance Calibration Guidelines", "department": "HR", "sensitivity": "confidential",
-     "allowed_roles": ["hr_manager","executive"],
-     "text": "During calibration, no more than 15% of employees in a department may receive the top rating of 5. Employees rated 1 in two consecutive cycles are placed on a performance improvement plan. Calibration outcomes are final once signed off by the department head and HR business partner."},
-    {"id": "D18", "title": "Employee Relations Case Register", "department": "HR", "sensitivity": "restricted",
-     "allowed_roles": ["hr_manager","executive"],
-     "text": "Open employee relations cases as of September 2026: case ER-2026-014 is a harassment complaint with the investigation in progress; case ER-2026-017 is a performance improvement plan in week 4 of 8; case ER-2026-019 is a grievance about overtime pay pending mediation."},
-    {"id": "D19", "title": "Board Minutes Q3 2026", "department": "Executive", "sensitivity": "restricted",
-     "allowed_roles": ["executive"],
-     "text": "The board approved launching a Series B fundraising round targeting US$40 million at a pre-money valuation range of US$180 million to US$220 million. The board also asked management to reduce LumenSplit single-merchant concentration below 12% by mid-2027."},
-    {"id": "D20", "title": "Project Kestrel", "department": "Executive", "sensitivity": "restricted",
-     "allowed_roles": ["executive"],
-     "text": "Project Kestrel is the proposed acquisition of a Malaysian e-wallet operator. The indicative offer is US$15 million, subject to due diligence. Information about Project Kestrel is limited to the executive committee under a non-disclosure agreement."},
-    {"id": "D21", "title": "FY2027 Budget", "department": "Executive", "sensitivity": "restricted",
-     "allowed_roles": ["executive"],
-     "text": "The FY2027 operating budget is S$38 million, including S$9.5 million for marketing and S$6 million for technology. Headcount is planned to grow from 140 to 175 employees, with most new roles in risk, engineering and collections."},
-    {"id": "D22", "title": "Model Risk Management Policy", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","compliance_officer","executive"],
-     "text": "All credit and fraud models must be independently validated before deployment and at least annually thereafter. Validation is performed by the Model Validation unit, which reports to the Chief Risk Officer rather than to model developers. A model with a population stability index above 0.25 must be reviewed within 30 days."},
-    {"id": "D23", "title": "Customer Complaint Handling", "department": "Operations", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Customer complaints must be acknowledged within one business day and resolved within 10 business days. Complaints involving alleged mis-selling or unfair collection practices are escalated to Compliance. Customers who remain dissatisfied can be referred to the external dispute resolution scheme."},
-    {"id": "D24", "title": "Outsourcing and Vendor Management", "department": "Compliance", "sensitivity": "confidential",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "Material outsourcing arrangements require vendor due diligence, notification to the board, and an annual business continuity test. The vendor register is maintained by Compliance and reviewed every six months."},
-    {"id": "D25", "title": "Performance Review Cycle", "department": "HR", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Performance reviews run twice a year, in June and December. Each cycle starts with a self-assessment, followed by a one-to-one discussion with your manager. Ratings use a five-point scale and results are shared within three weeks of the cycle closing."},
-    {"id": "D26", "title": "Data Breach Notification Playbook", "department": "Compliance", "sensitivity": "confidential",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "Once the Data Protection Officer confirms that a personal data breach is notifiable, the regulator notification must be filed within three calendar days and affected customers informed without undue delay. The playbook contains template letters to customers, the customer hotline script, and the evidence to preserve, including email headers of phishing messages, device logs and copies of any misdirected customer emails."},
-    {"id": "D27", "title": "Breach Register 2026", "department": "Compliance", "sensitivity": "restricted",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "Breach BR-2026-03: a phishing email led to the compromise of one staff mailbox; 212 customer records were exposed and the incident was reported to security within 40 minutes. Breach BR-2026-05: a lost laptop was fully encrypted and assessed as not notifiable. Breach BR-2026-06: a vendor misdirected an email containing 18 customer statements to the wrong customer."},
-    {"id": "D28", "title": "Cyber Incident Tabletop Exercise 2026", "department": "Executive", "sensitivity": "restricted",
-     "allowed_roles": ["executive"],
-     "text": "The executive committee ran a ransomware tabletop exercise in August 2026. Staff reported the simulated phishing email to security within one hour in only 64% of cases, below the 90% target, and several staff tried to investigate the suspicious email themselves. The committee approved an additional S$250,000 for security awareness training and an incident response retainer."},
-    {"id": "D29", "title": "Phishing Awareness Tips", "department": "IT", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Hover over links before clicking and check that the sender domain matches lumenpay.example. Never enter your password on a page reached from an email link. Use the Report Phish button in Outlook to forward a suspicious email to the security team; this counts as reporting the incident."},
-    {"id": "D30", "title": "Payroll Calendar and Payslips", "department": "HR", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Salaries are paid on the 25th of each month, or on the previous business day if the 25th falls on a weekend or public holiday. Payslips are available in the HR portal from the 23rd. Questions about pay deductions or CPF contributions should be raised with the payroll team at payroll@lumenpay.example."},
-    {"id": "D31", "title": "Bonus Pool FY2026", "department": "HR", "sensitivity": "restricted",
-     "allowed_roles": ["hr_manager","executive"],
-     "text": "The FY2026 bonus pool is S$2.1 million, equal to 11% of base payroll. Employees rated 5 receive 1.5 to 2 months of salary, employees rated 4 receive 1 to 1.5 months, employees rated 3 receive up to 1 month, and employees rated 1 or 2 receive no bonus. Bonuses are paid with the March salary."},
-    {"id": "D32", "title": "Salary Review Process 2026", "department": "HR", "sensitivity": "confidential",
-     "allowed_roles": ["hr_manager","executive"],
-     "text": "The annual salary review takes effect on 1 April. Managers propose increments within the 2026 salary bands, and any increment above 8% or any salary above the band maximum needs approval from the Chief People Officer. Salary increases are first paid in the April salary on the 25th and shown on the April payslip."},
-    {"id": "D33", "title": "Executive Compensation", "department": "Executive", "sensitivity": "restricted",
-     "allowed_roles": ["executive"],
-     "text": "The CEO's annual base salary is S$420,000 with a target bonus of 50% of base salary. Other executive committee members have base salaries between S$260,000 and S$340,000. Executive pay is reviewed by the board remuneration committee each January."},
-    {"id": "D34", "title": "Performance Improvement Plan Procedure", "department": "HR", "sensitivity": "confidential",
-     "allowed_roles": ["hr_manager","executive"],
-     "text": "A performance improvement plan lasts eight weeks, with fortnightly check-ins between the employee, the manager and the HR business partner. Objectives must be specific and measurable. If the objectives are not met by the end of the plan, HR may recommend an extension, redeployment or termination."},
-    {"id": "D35", "title": "Promotion Criteria", "department": "HR", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Promotion nominations are made during the December performance review cycle. To be promoted, employees must have spent at least 12 months in their current grade and received a rating of 4 or 5 in the most recent review. Promotions take effect on 1 January."},
-    {"id": "D36", "title": "Performance Ratings Distribution 2026 H1", "department": "HR", "sensitivity": "restricted",
-     "allowed_roles": ["hr_manager","executive"],
-     "text": "In the June 2026 performance review, 14% of employees were rated 5, 31% rated 4, 45% rated 3, 8% rated 2 and 2% rated 1. The Risk department had the highest share of top ratings at 18%, above the calibration limit, and was asked to recalibrate its ratings."},
-    {"id": "D37", "title": "LumenFlex Pricing Grid", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","compliance_officer","executive"],
-     "text": "LumenFlex interest rates depend on the risk grade assigned by Scorecard v3. Grade A applicants pay 6.9% per annum, grade B 9.9%, grade C 13.9% and grade D 17.9%. Grade E applicants are declined. An administrative fee of 2% of the loan amount is deducted at disbursement."},
-    {"id": "D38", "title": "LumenFlex Customer FAQ", "department": "Product", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Customers can borrow between S$1,000 and S$20,000 with LumenFlex and choose a repayment period of 6 to 36 months. Early repayment is allowed at any time with no penalty. Approved funds are usually paid into the customer's bank account within one business day."},
-    {"id": "D39", "title": "LumenSplit Customer Limit Strategy", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","executive"],
-     "text": "Each new LumenSplit customer starts with a spending limit of S$500. The limit rises by S$250 after every six on-time instalments, up to a maximum of S$1,500. Limits are frozen when any instalment is more than 14 days overdue."},
-    {"id": "D40", "title": "Credit Policy Exceptions Log Q3 2026", "department": "Risk", "sensitivity": "restricted",
-     "allowed_roles": ["risk_analyst","executive"],
-     "text": "Credit policy exceptions approved in Q3 2026: 41 LumenFlex applications were approved with a debt-to-income ratio between 45% and 50%, and 6 applicants aged 66 or 67 were approved by the Head of Credit. Exceptions must not exceed 3% of monthly approvals."},
-    {"id": "D41", "title": "Affordability Assessment Standard", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","compliance_officer","executive"],
-     "text": "Every LumenFlex application must include an affordability check that compares verified income from MyInfo or CPF records with existing debt obligations reported by the credit bureau. The check result and the underwriter's notes must be stored in the loan file. A loan file without a documented affordability check cannot be disbursed."},
-    {"id": "D42", "title": "Hardship Assistance Programme", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","executive"],
-     "text": "Customers in financial hardship, for example after losing their job, may receive a repayment holiday of up to three months or a tenor extension of up to 12 months. Late fees are waived during the assistance period. Hardship requests are assessed within five business days."},
-    {"id": "D43", "title": "Collections Conduct Standard", "department": "Operations", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Collection calls are made only between 8am and 9pm on weekdays and between 9am and 6pm on Saturdays, never on Sundays or public holidays. Staff must not contact a customer's employer or family members about the debt. Calls are recorded and 5% are sampled for quality review."},
-    {"id": "D44", "title": "Collections Agency Performance Q2 2026", "department": "Risk", "sensitivity": "restricted",
-     "allowed_roles": ["risk_analyst","executive"],
-     "text": "External agency Apex Recoveries recovered 18% of balances referred at 90 days past due in Q2 2026, compared with 23% for Merlion Collect. The contract with Apex Recoveries will not be renewed after December 2026."},
-    {"id": "D45", "title": "Write-off Policy", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","compliance_officer","executive"],
-     "text": "Loan accounts are written off at 180 days past due, or earlier when the customer is declared bankrupt or deceased. Write-offs above S$10,000 require approval from the Chief Risk Officer. Recoveries after write-off are credited to the recoveries ledger."},
-    {"id": "D46", "title": "Fraud Loss Report Q2 2026", "department": "Risk", "sensitivity": "restricted",
-     "allowed_roles": ["risk_analyst","executive"],
-     "text": "Confirmed fraud losses in Q2 2026 were S$184,000, or 0.21% of disbursements. 62% of losses came from synthetic identity applications. Rule F-12 alone prevented an estimated S$310,000 of fraud losses."},
-    {"id": "D47", "title": "How to Spot Customer Impersonation", "department": "Operations", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "If a caller cannot answer the three security questions, do not discuss the account. Never change a customer's phone number or bank account over the phone; changes must be made in the app with MyInfo re-verification. Report suspected impersonation to the fraud team on #fraud-alerts."},
-    {"id": "D48", "title": "Money Mule Typologies", "department": "Compliance", "sensitivity": "confidential",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "Common money mule indicators include many small inbound transfers followed by an immediate full outflow, newly opened accounts receiving loan disbursements on behalf of third parties, and customers aged 18 to 23 with no income history. Suspected mule activity must be escalated to the Money Laundering Reporting Officer."},
-    {"id": "D49", "title": "Sanctions Screening Procedure", "department": "Compliance", "sensitivity": "confidential",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "All customers and merchants are screened against sanctions lists at onboarding and daily thereafter. Potential matches must be reviewed by Compliance within four hours. Confirmed matches are frozen immediately and escalated to the Money Laundering Reporting Officer."},
-    {"id": "D50", "title": "Compliance Training Requirements", "department": "Compliance", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "All staff must complete the annual AML and data protection e-learning by 30 November. New joiners complete the modules within 30 days of starting. Staff who miss the deadline lose access to the lending console until the training is completed."},
-    {"id": "D51", "title": "Regulatory Change Log Q2 2026", "department": "Compliance", "sensitivity": "confidential",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "RC-2026-04, tracked internally, requires the total cost of credit to be displayed on the loan offer screen from 1 January 2027. RC-2026-05 tightens record keeping so that customer due diligence records are kept for seven years after the customer relationship ends."},
-    {"id": "D52", "title": "Regulatory Inspection Preparation 2026", "department": "Compliance", "sensitivity": "restricted",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "The regulator's on-site inspection is scheduled for 10 to 21 November 2026 and will focus on BNPL limits, affordability checks and outsourcing. Compliance must prepare a document room with the vendor register, the 2025 internal audit findings and the remediation tracker by 3 November."},
-    {"id": "D53", "title": "Whistleblowing Policy", "department": "Compliance", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Staff can report suspected misconduct confidentially, and anonymously if they prefer, through the whistleblowing hotline or whistle@lumenpay.example. Reports are handled by the Head of Compliance, or by the audit committee chair if senior management is involved. Retaliation against a whistleblower is a disciplinary offence."},
-    {"id": "D54", "title": "Whistleblowing Case Log 2026", "department": "Compliance", "sensitivity": "restricted",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "Case WB-2026-02 alleged that a collections team leader told agents to call customers' employers; the investigation found the allegation substantiated and two agents were retrained. Case WB-2026-04 concerns an alleged vendor kickback in the marketing team and is under investigation."},
-    {"id": "D55", "title": "Data Retention Schedule", "department": "Compliance", "sensitivity": "confidential",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "Loan application files are kept for seven years after the loan is closed. Declined applications are kept for two years. Call recordings are kept for one year unless linked to a complaint. Personal data breach records are kept for five years."},
-    {"id": "D56", "title": "Personal Data Handling for Staff", "department": "Compliance", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Only access the customer data you need for your current task. Do not copy customer data to personal devices, personal email or messaging apps. Customer data must not leave Singapore without Compliance approval. If you think customer data has been sent to the wrong person, report it to the security team within one hour."},
-    {"id": "D57", "title": "Vendor Register H2 2026", "department": "Compliance", "sensitivity": "restricted",
-     "allowed_roles": ["compliance_officer","executive"],
-     "text": "Material vendors on the register: CloudCore hosts the core lending platform under a contract running to 2028; VeriFast provides identity verification; Apex Recoveries and Merlion Collect provide collections. VeriFast and Apex Recoveries have not completed a business continuity test in 2026."},
-    {"id": "D58", "title": "Procurement Policy", "department": "Finance", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Purchases above S$5,000 need three written quotes. Purchases above S$50,000 require approval from the Chief Financial Officer and a contract review by Legal. New vendors that will handle customer data must also be assessed by Compliance before onboarding."},
-    {"id": "D59", "title": "Series B Investor Pipeline", "department": "Executive", "sensitivity": "restricted",
-     "allowed_roles": ["executive"],
-     "text": "As of September 2026, four investors have signed non-disclosure agreements for the Series B: two regional venture funds, one Japanese corporate investor and one sovereign-linked fund. Term sheets are expected by December 2026, and the lead investor is expected to take at least US$15 million."},
-    {"id": "D60", "title": "Company Town Hall Q3 2026 Summary", "department": "Executive", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "At the Q3 town hall the CEO shared that LumenPay has passed 250,000 customers and is preparing for its next stage of growth. Hiring will continue in risk, engineering and collections. Questions about fundraising and acquisitions were not answered because they are confidential."},
-    {"id": "D61", "title": "Market Expansion Assessment: Malaysia", "department": "Executive", "sensitivity": "restricted",
-     "allowed_roles": ["executive"],
-     "text": "Entering Malaysia organically would take about 18 months and require an e-money licence. Acquiring an existing e-wallet operator would cut the time to market to about six months. The assessment recommends the acquisition route, subject to due diligence on the target's compliance history."},
-    {"id": "D62", "title": "FY2026 Budget Performance H1", "department": "Executive", "sensitivity": "restricted",
-     "allowed_roles": ["executive"],
-     "text": "First-half FY2026 operating expenses were S$16.2 million against a budget of S$17.0 million. Marketing underspent by S$0.6 million because the LumenSplit campaign was delayed. Technology spending was on budget."},
-    {"id": "D63", "title": "Organisation Chart", "department": "HR", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "LumenPay is led by the CEO. The executive committee also includes the Chief Risk Officer, Chief Financial Officer, Chief Technology Officer, Chief People Officer and Head of Compliance. The Model Validation unit reports to the Chief Risk Officer. The company has about 140 employees."},
-    {"id": "D64", "title": "Scorecard v3 Monitoring Report Q2 2026", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","executive"],
-     "text": "The population stability index for Scorecard v3 was 0.18 in Q2 2026, up from 0.11 in Q1. Gini on recent approvals fell to 0.47. The monitoring team recommends bringing the recalibration forward if the population stability index exceeds 0.25."},
-    {"id": "D65", "title": "Model Inventory", "department": "Risk", "sensitivity": "confidential",
-     "allowed_roles": ["risk_analyst","compliance_officer","executive"],
-     "text": "The model inventory lists five production models: Scorecard v3 for LumenFlex applications, a LumenSplit limit model, a behavioural score for collections prioritisation, a fraud anomaly model, and an income estimation model. Each model has a named owner and a last validation date."},
-    {"id": "D66", "title": "Model Validation Report: Scorecard v3", "department": "Risk", "sensitivity": "restricted",
-     "allowed_roles": ["risk_analyst","compliance_officer","executive"],
-     "text": "The Model Validation unit approved Scorecard v3 with two conditions: monthly monitoring of the population stability index, and a fairness review of approval rates by age band before the Q1 2027 recalibration. The out-of-time Gini of 0.52 was reproduced independently."},
-    {"id": "D67", "title": "Laptop and Equipment Policy", "department": "IT", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "New joiners receive a company laptop and one external monitor. Lost or stolen equipment must be reported to IT and to the security team within one hour. Personal software may not be installed; request software through the IT service portal."},
-    {"id": "D68", "title": "Travel Policy", "department": "Finance", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Economy class is used for flights under eight hours. Hotel costs are capped at S$250 per night within the region. Travel should be booked through the company travel portal at least 14 days in advance where possible. The meal allowance while travelling is S$60 per day."},
-    {"id": "D69", "title": "Learning and Development Allowance", "department": "HR", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "Each employee has an annual learning allowance of S$1,500 for courses, certifications and books. Claims are submitted through the expense system with proof of completion. Unused allowance does not carry forward to the next year."},
-    {"id": "D70", "title": "Office Access and Visitors", "department": "Operations", "sensitivity": "internal",
-     "allowed_roles": ["employee","risk_analyst","compliance_officer","hr_manager","executive"],
-     "text": "The office is open from 7am to 10pm on weekdays. Visitors must be registered in advance and escorted at all times. Access cards must be worn visibly, and lost cards must be reported to the office manager."}
-  ]
+ "company": "LumenPay (fictional Singapore consumer-credit fintech)",
+ "roles": [
+  "employee",
+  "risk_analyst",
+  "compliance_officer",
+  "hr_manager",
+  "executive"
+ ],
+ "documents": [
+  {
+   "id": "D01",
+   "title": "Employee Handbook - Leave",
+   "department": "HR",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Full-time employees receive 18 days of annual leave per calendar year, plus 14 days of outpatient sick leave. Up to 5 unused leave days can be carried forward to the next year and must be used by 31 March. Leave requests are submitted in the HR portal at least 5 working days in advance for absences longer than two days.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D01",
+   "links": []
+  },
+  {
+   "id": "D02",
+   "title": "IT Security Policy",
+   "department": "IT",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "All staff must enable multi-factor authentication on email, VPN and the core lending console. Passwords must be at least 14 characters and are rotated every 90 days. Company laptops lock automatically after 5 minutes of inactivity. USB storage devices are blocked by default; exceptions require approval from the Head of IT Security.",
+   "source": "confluence",
+   "acl": {
+    "space": "it",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/it/D02",
+   "links": []
+  },
+  {
+   "id": "D03",
+   "title": "Expense Claims Policy",
+   "department": "Finance",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Expense claims must be submitted within 30 days of the expense date with an itemised receipt. Client meal claims are capped at S$80 per person. Taxi claims are allowed only after 10pm or when carrying equipment. Claims above S$1,000 require approval from a department head.",
+   "source": "confluence",
+   "acl": {
+    "space": "finance",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/finance/D03",
+   "links": []
+  },
+  {
+   "id": "D04",
+   "title": "Hybrid Work Policy",
+   "department": "HR",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Staff may work from home up to two days per week. Tuesdays and Thursdays are core office days when all teams are expected on site. Working from overseas requires written approval because of data residency restrictions on customer data.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D04",
+   "links": []
+  },
+  {
+   "id": "D05",
+   "title": "Product Overview",
+   "department": "Product",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "LumenPay offers two consumer products in Singapore. LumenSplit is a buy-now-pay-later plan that splits a purchase into three interest-free instalments. LumenFlex is an unsecured instalment loan from S$1,000 to S$20,000 with tenors of 6 to 36 months. Merchants pay a fee of 3.5% on LumenSplit transactions.",
+   "source": "confluence",
+   "acl": {
+    "space": "product",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/product/D05",
+   "links": []
+  },
+  {
+   "id": "D06",
+   "title": "Security Incident Reporting",
+   "department": "IT",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Any suspected security incident, including phishing emails, lost devices or unusual account activity, must be reported to the Security Operations team within one hour through the #sec-incident channel or security@lumenpay.example. Do not attempt to investigate the incident yourself.",
+   "source": "confluence",
+   "acl": {
+    "space": "it",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/it/D06",
+   "links": []
+  },
+  {
+   "id": "D07",
+   "title": "LumenFlex Credit Policy",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "Applicants for LumenFlex must be aged 21 to 65 with a minimum annual income of S$30,000. Applications with a credit bureau score below 1,800 are automatically declined. The maximum debt-to-income ratio is 45%, including the new loan. Manual underwriting review is required for loan amounts above S$15,000.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D07",
+   "links": []
+  },
+  {
+   "id": "D08",
+   "title": "Application Scorecard v3 Documentation",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "executive"
+   ],
+   "text": "Scorecard v3 is a logistic regression model trained on 2023 to 2025 LumenFlex applications. The top features by information value are months since last delinquency, revolving utilisation, and number of credit enquiries in the past six months. Out-of-time validation Gini is 0.52. The model is scheduled for recalibration in Q1 2027.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D08",
+   "links": []
+  },
+  {
+   "id": "D09",
+   "title": "Collections Strategy",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "executive"
+   ],
+   "text": "Accounts enter early collections at 1 day past due with an SMS reminder. Collection agent calls begin at 7 days past due. At 30 days past due a late fee of S$30 is applied and the account is flagged for hardship assessment. Accounts reaching 90 days past due are referred to an external collection agency and reported as non-performing.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D09",
+   "links": []
+  },
+  {
+   "id": "D10",
+   "title": "Fraud Detection Rules",
+   "department": "Risk",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "risk_analyst",
+    "executive"
+   ],
+   "text": "Rule F-12 blocks an application when the same device fingerprint is linked to more than three applications within 24 hours. Rule F-19 sends an application to manual review when the declared employer does not match the CPF contribution record. Fraud rule thresholds are reviewed monthly by the fraud strategy team.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D10",
+   "links": []
+  },
+  {
+   "id": "D11",
+   "title": "Risk Appetite Statement FY2026",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "The board has set the following risk appetite for FY2026: non-performing loan ratio below 3.5%, 30+ days-past-due roll rate below 8%, and single-merchant concentration of no more than 15% of LumenSplit volume. Any breach must be escalated to the Chief Risk Officer within two business days.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D11",
+   "links": []
+  },
+  {
+   "id": "D12",
+   "title": "AML and KYC Procedure",
+   "department": "Compliance",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "All customers undergo identity verification through MyInfo before onboarding. Enhanced due diligence is required for politically exposed persons and for customers whose transactions exceed S$20,000 in a rolling 30-day window. Suspicious activity must be escalated to the Money Laundering Reporting Officer within one business day of detection.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D12",
+   "links": []
+  },
+  {
+   "id": "D13",
+   "title": "Internal Audit Findings 2025",
+   "department": "Compliance",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "The 2025 internal audit raised three findings. First, 12% of sampled loan files lacked a documented affordability check. Second, user access reviews for the lending console were performed annually instead of quarterly. Third, two outsourced vendors had no current business continuity test. Remediation owners must close all findings by 31 December 2026.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D13",
+   "links": []
+  },
+  {
+   "id": "D14",
+   "title": "Personal Data Breach Response",
+   "department": "Compliance",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "When a personal data breach is suspected, the Data Protection Officer must be informed immediately and an initial assessment completed within 24 hours. The Data Protection Officer decides whether the breach is notifiable and coordinates any notification to regulators and affected customers. All breach records are retained for five years.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D14",
+   "links": []
+  },
+  {
+   "id": "D15",
+   "title": "Regulatory Change Log Q3 2026",
+   "department": "Compliance",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "Revised BNPL industry guidelines, tracked internally as RC-2026-07, will cap outstanding buy-now-pay-later balances at S$2,000 per customer from 1 March 2027. Compliance must update LumenSplit limits and customer disclosures before the effective date.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D15",
+   "links": []
+  },
+  {
+   "id": "D16",
+   "title": "Salary Bands 2026",
+   "department": "HR",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Monthly salary bands for 2026: Analyst S$4,800 to S$6,500; Senior Analyst S$6,500 to S$8,800; Manager S$9,000 to S$12,500. Annual increments are capped at 8% except on promotion. Salary band information is strictly confidential.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {
+     "groups": [
+      "hr_manager",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D16",
+   "links": []
+  },
+  {
+   "id": "D17",
+   "title": "Performance Calibration Guidelines",
+   "department": "HR",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "hr_manager",
+    "executive"
+   ],
+   "text": "During calibration, no more than 15% of employees in a department may receive the top rating of 5. Employees rated 1 in two consecutive cycles are placed on a performance improvement plan. Calibration outcomes are final once signed off by the department head and HR business partner.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {
+     "groups": [
+      "hr_manager",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D17",
+   "links": []
+  },
+  {
+   "id": "D18",
+   "title": "Employee Relations Case Register",
+   "department": "HR",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Open employee relations cases as of September 2026: case ER-2026-014 is a harassment complaint with the investigation in progress; case ER-2026-017 is a performance improvement plan in week 4 of 8; case ER-2026-019 is a grievance about overtime pay pending mediation.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {
+     "groups": [
+      "hr_manager",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D18",
+   "links": []
+  },
+  {
+   "id": "D19",
+   "title": "Board Minutes Q3 2026",
+   "department": "Executive",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "executive"
+   ],
+   "text": "The board approved launching a Series B fundraising round targeting US$40 million at a pre-money valuation range of US$180 million to US$220 million. The board also asked management to reduce LumenSplit single-merchant concentration below 12% by mid-2027.",
+   "source": "confluence",
+   "acl": {
+    "space": "exec",
+    "restrictions": {
+     "groups": [
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/exec/D19",
+   "links": []
+  },
+  {
+   "id": "D20",
+   "title": "Project Kestrel",
+   "department": "Executive",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "executive"
+   ],
+   "text": "Project Kestrel is the proposed acquisition of a Malaysian e-wallet operator. The indicative offer is US$15 million, subject to due diligence. Information about Project Kestrel is limited to the executive committee under a non-disclosure agreement.",
+   "source": "confluence",
+   "acl": {
+    "space": "exec",
+    "restrictions": {
+     "groups": [
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/exec/D20",
+   "links": []
+  },
+  {
+   "id": "D21",
+   "title": "FY2027 Budget",
+   "department": "Executive",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "executive"
+   ],
+   "text": "The FY2027 operating budget is S$38 million, including S$9.5 million for marketing and S$6 million for technology. Headcount is planned to grow from 140 to 175 employees, with most new roles in risk, engineering and collections.",
+   "source": "confluence",
+   "acl": {
+    "space": "exec",
+    "restrictions": {
+     "groups": [
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/exec/D21",
+   "links": []
+  },
+  {
+   "id": "D22",
+   "title": "Model Risk Management Policy",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "All credit and fraud models must be independently validated before deployment and at least annually thereafter. Validation is performed by the Model Validation unit, which reports to the Chief Risk Officer rather than to model developers. A model with a population stability index above 0.25 must be reviewed within 30 days.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D22",
+   "links": []
+  },
+  {
+   "id": "D23",
+   "title": "Customer Complaint Handling",
+   "department": "Operations",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Customer complaints must be acknowledged within one business day and resolved within 10 business days. Complaints involving alleged mis-selling or unfair collection practices are escalated to Compliance. Customers who remain dissatisfied can be referred to the external dispute resolution scheme.",
+   "source": "confluence",
+   "acl": {
+    "space": "ops",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/ops/D23",
+   "links": []
+  },
+  {
+   "id": "D24",
+   "title": "Outsourcing and Vendor Management",
+   "department": "Compliance",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "Material outsourcing arrangements require vendor due diligence, notification to the board, and an annual business continuity test. The vendor register is maintained by Compliance and reviewed every six months.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D24",
+   "links": []
+  },
+  {
+   "id": "D25",
+   "title": "Performance Review Cycle",
+   "department": "HR",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Performance reviews run twice a year, in June and December. Each cycle starts with a self-assessment, followed by a one-to-one discussion with your manager. Ratings use a five-point scale and results are shared within three weeks of the cycle closing.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D25",
+   "links": []
+  },
+  {
+   "id": "D26",
+   "title": "Data Breach Notification Playbook",
+   "department": "Compliance",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "Once the Data Protection Officer confirms that a personal data breach is notifiable, the regulator notification must be filed within three calendar days and affected customers informed without undue delay. The playbook contains template letters to customers, the customer hotline script, and the evidence to preserve, including email headers of phishing messages, device logs and copies of any misdirected customer emails.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D26",
+   "links": []
+  },
+  {
+   "id": "D27",
+   "title": "Breach Register 2026",
+   "department": "Compliance",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "Breach BR-2026-03: a phishing email led to the compromise of one staff mailbox; 212 customer records were exposed and the incident was reported to security within 40 minutes. Breach BR-2026-05: a lost laptop was fully encrypted and assessed as not notifiable. Breach BR-2026-06: a vendor misdirected an email containing 18 customer statements to the wrong customer.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D27",
+   "links": []
+  },
+  {
+   "id": "D28",
+   "title": "Cyber Incident Tabletop Exercise 2026",
+   "department": "Executive",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "executive"
+   ],
+   "text": "The executive committee ran a ransomware tabletop exercise in August 2026. Staff reported the simulated phishing email to security within one hour in only 64% of cases, below the 90% target, and several staff tried to investigate the suspicious email themselves. The committee approved an additional S$250,000 for security awareness training and an incident response retainer.",
+   "source": "confluence",
+   "acl": {
+    "space": "exec",
+    "restrictions": {
+     "groups": [
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/exec/D28",
+   "links": []
+  },
+  {
+   "id": "D29",
+   "title": "Phishing Awareness Tips",
+   "department": "IT",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Hover over links before clicking and check that the sender domain matches lumenpay.example. Never enter your password on a page reached from an email link. Use the Report Phish button in Outlook to forward a suspicious email to the security team; this counts as reporting the incident.",
+   "source": "confluence",
+   "acl": {
+    "space": "it",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/it/D29",
+   "links": []
+  },
+  {
+   "id": "D30",
+   "title": "Payroll Calendar and Payslips",
+   "department": "HR",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Salaries are paid on the 25th of each month, or on the previous business day if the 25th falls on a weekend or public holiday. Payslips are available in the HR portal from the 23rd. Questions about pay deductions or CPF contributions should be raised with the payroll team at payroll@lumenpay.example.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D30",
+   "links": []
+  },
+  {
+   "id": "D31",
+   "title": "Bonus Pool FY2026",
+   "department": "HR",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "hr_manager",
+    "executive"
+   ],
+   "text": "The FY2026 bonus pool is S$2.1 million, equal to 11% of base payroll. Employees rated 5 receive 1.5 to 2 months of salary, employees rated 4 receive 1 to 1.5 months, employees rated 3 receive up to 1 month, and employees rated 1 or 2 receive no bonus. Bonuses are paid with the March salary.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {
+     "groups": [
+      "hr_manager",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D31",
+   "links": []
+  },
+  {
+   "id": "D32",
+   "title": "Salary Review Process 2026",
+   "department": "HR",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "hr_manager",
+    "executive"
+   ],
+   "text": "The annual salary review takes effect on 1 April. Managers propose increments within the 2026 salary bands, and any increment above 8% or any salary above the band maximum needs approval from the Chief People Officer. Salary increases are first paid in the April salary on the 25th and shown on the April payslip.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {
+     "groups": [
+      "hr_manager",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D32",
+   "links": []
+  },
+  {
+   "id": "D33",
+   "title": "Executive Compensation",
+   "department": "Executive",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "executive"
+   ],
+   "text": "The CEO's annual base salary is S$420,000 with a target bonus of 50% of base salary. Other executive committee members have base salaries between S$260,000 and S$340,000. Executive pay is reviewed by the board remuneration committee each January.",
+   "source": "confluence",
+   "acl": {
+    "space": "exec",
+    "restrictions": {
+     "groups": [
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/exec/D33",
+   "links": []
+  },
+  {
+   "id": "D34",
+   "title": "Performance Improvement Plan Procedure",
+   "department": "HR",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "hr_manager",
+    "executive"
+   ],
+   "text": "A performance improvement plan lasts eight weeks, with fortnightly check-ins between the employee, the manager and the HR business partner. Objectives must be specific and measurable. If the objectives are not met by the end of the plan, HR may recommend an extension, redeployment or termination.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {
+     "groups": [
+      "hr_manager",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D34",
+   "links": []
+  },
+  {
+   "id": "D35",
+   "title": "Promotion Criteria",
+   "department": "HR",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Promotion nominations are made during the December performance review cycle. To be promoted, employees must have spent at least 12 months in their current grade and received a rating of 4 or 5 in the most recent review. Promotions take effect on 1 January.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D35",
+   "links": []
+  },
+  {
+   "id": "D36",
+   "title": "Performance Ratings Distribution 2026 H1",
+   "department": "HR",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "hr_manager",
+    "executive"
+   ],
+   "text": "In the June 2026 performance review, 14% of employees were rated 5, 31% rated 4, 45% rated 3, 8% rated 2 and 2% rated 1. The Risk department had the highest share of top ratings at 18%, above the calibration limit, and was asked to recalibrate its ratings.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {
+     "groups": [
+      "hr_manager",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D36",
+   "links": []
+  },
+  {
+   "id": "D37",
+   "title": "LumenFlex Pricing Grid",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "LumenFlex interest rates depend on the risk grade assigned by Scorecard v3. Grade A applicants pay 6.9% per annum, grade B 9.9%, grade C 13.9% and grade D 17.9%. Grade E applicants are declined. An administrative fee of 2% of the loan amount is deducted at disbursement.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D37",
+   "links": []
+  },
+  {
+   "id": "D38",
+   "title": "LumenFlex Customer FAQ",
+   "department": "Product",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Customers can borrow between S$1,000 and S$20,000 with LumenFlex and choose a repayment period of 6 to 36 months. Early repayment is allowed at any time with no penalty. Approved funds are usually paid into the customer's bank account within one business day.",
+   "source": "confluence",
+   "acl": {
+    "space": "product",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/product/D38",
+   "links": []
+  },
+  {
+   "id": "D39",
+   "title": "LumenSplit Customer Limit Strategy",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "executive"
+   ],
+   "text": "Each new LumenSplit customer starts with a spending limit of S$500. The limit rises by S$250 after every six on-time instalments, up to a maximum of S$1,500. Limits are frozen when any instalment is more than 14 days overdue.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D39",
+   "links": []
+  },
+  {
+   "id": "D40",
+   "title": "Credit Policy Exceptions Log Q3 2026",
+   "department": "Risk",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "risk_analyst",
+    "executive"
+   ],
+   "text": "Credit policy exceptions approved in Q3 2026: 41 LumenFlex applications were approved with a debt-to-income ratio between 45% and 50%, and 6 applicants aged 66 or 67 were approved by the Head of Credit. Exceptions must not exceed 3% of monthly approvals.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D40",
+   "links": []
+  },
+  {
+   "id": "D41",
+   "title": "Affordability Assessment Standard",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "Every LumenFlex application must include an affordability check that compares verified income from MyInfo or CPF records with existing debt obligations reported by the credit bureau. The check result and the underwriter's notes must be stored in the loan file. A loan file without a documented affordability check cannot be disbursed.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D41",
+   "links": []
+  },
+  {
+   "id": "D42",
+   "title": "Hardship Assistance Programme",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "executive"
+   ],
+   "text": "Customers in financial hardship, for example after losing their job, may receive a repayment holiday of up to three months or a tenor extension of up to 12 months. Late fees are waived during the assistance period. Hardship requests are assessed within five business days.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D42",
+   "links": []
+  },
+  {
+   "id": "D43",
+   "title": "Collections Conduct Standard",
+   "department": "Operations",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Collection calls are made only between 8am and 9pm on weekdays and between 9am and 6pm on Saturdays, never on Sundays or public holidays. Staff must not contact a customer's employer or family members about the debt. Calls are recorded and 5% are sampled for quality review.",
+   "source": "confluence",
+   "acl": {
+    "space": "ops",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/ops/D43",
+   "links": []
+  },
+  {
+   "id": "D44",
+   "title": "Collections Agency Performance Q2 2026",
+   "department": "Risk",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "risk_analyst",
+    "executive"
+   ],
+   "text": "External agency Apex Recoveries recovered 18% of balances referred at 90 days past due in Q2 2026, compared with 23% for Merlion Collect. The contract with Apex Recoveries will not be renewed after December 2026.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D44",
+   "links": []
+  },
+  {
+   "id": "D45",
+   "title": "Write-off Policy",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "Loan accounts are written off at 180 days past due, or earlier when the customer is declared bankrupt or deceased. Write-offs above S$10,000 require approval from the Chief Risk Officer. Recoveries after write-off are credited to the recoveries ledger.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D45",
+   "links": []
+  },
+  {
+   "id": "D46",
+   "title": "Fraud Loss Report Q2 2026",
+   "department": "Risk",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "risk_analyst",
+    "executive"
+   ],
+   "text": "Confirmed fraud losses in Q2 2026 were S$184,000, or 0.21% of disbursements. 62% of losses came from synthetic identity applications. Rule F-12 alone prevented an estimated S$310,000 of fraud losses.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D46",
+   "links": []
+  },
+  {
+   "id": "D47",
+   "title": "How to Spot Customer Impersonation",
+   "department": "Operations",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "If a caller cannot answer the three security questions, do not discuss the account. Never change a customer's phone number or bank account over the phone; changes must be made in the app with MyInfo re-verification. Report suspected impersonation to the fraud team on #fraud-alerts.",
+   "source": "confluence",
+   "acl": {
+    "space": "ops",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/ops/D47",
+   "links": []
+  },
+  {
+   "id": "D48",
+   "title": "Money Mule Typologies",
+   "department": "Compliance",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "Common money mule indicators include many small inbound transfers followed by an immediate full outflow, newly opened accounts receiving loan disbursements on behalf of third parties, and customers aged 18 to 23 with no income history. Suspected mule activity must be escalated to the Money Laundering Reporting Officer.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D48",
+   "links": []
+  },
+  {
+   "id": "D49",
+   "title": "Sanctions Screening Procedure",
+   "department": "Compliance",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "All customers and merchants are screened against sanctions lists at onboarding and daily thereafter. Potential matches must be reviewed by Compliance within four hours. Confirmed matches are frozen immediately and escalated to the Money Laundering Reporting Officer.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D49",
+   "links": []
+  },
+  {
+   "id": "D50",
+   "title": "Compliance Training Requirements",
+   "department": "Compliance",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "All staff must complete the annual AML and data protection e-learning by 30 November. New joiners complete the modules within 30 days of starting. Staff who miss the deadline lose access to the lending console until the training is completed.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D50",
+   "links": []
+  },
+  {
+   "id": "D51",
+   "title": "Regulatory Change Log Q2 2026",
+   "department": "Compliance",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "RC-2026-04, tracked internally, requires the total cost of credit to be displayed on the loan offer screen from 1 January 2027. RC-2026-05 tightens record keeping so that customer due diligence records are kept for seven years after the customer relationship ends.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D51",
+   "links": []
+  },
+  {
+   "id": "D52",
+   "title": "Regulatory Inspection Preparation 2026",
+   "department": "Compliance",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "The regulator's on-site inspection is scheduled for 10 to 21 November 2026 and will focus on BNPL limits, affordability checks and outsourcing. Compliance must prepare a document room with the vendor register, the 2025 internal audit findings and the remediation tracker by 3 November.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D52",
+   "links": []
+  },
+  {
+   "id": "D53",
+   "title": "Whistleblowing Policy",
+   "department": "Compliance",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Staff can report suspected misconduct confidentially, and anonymously if they prefer, through the whistleblowing hotline or whistle@lumenpay.example. Reports are handled by the Head of Compliance, or by the audit committee chair if senior management is involved. Retaliation against a whistleblower is a disciplinary offence.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D53",
+   "links": []
+  },
+  {
+   "id": "D54",
+   "title": "Whistleblowing Case Log 2026",
+   "department": "Compliance",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "Case WB-2026-02 alleged that a collections team leader told agents to call customers' employers; the investigation found the allegation substantiated and two agents were retrained. Case WB-2026-04 concerns an alleged vendor kickback in the marketing team and is under investigation.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D54",
+   "links": []
+  },
+  {
+   "id": "D55",
+   "title": "Data Retention Schedule",
+   "department": "Compliance",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "Loan application files are kept for seven years after the loan is closed. Declined applications are kept for two years. Call recordings are kept for one year unless linked to a complaint. Personal data breach records are kept for five years.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D55",
+   "links": []
+  },
+  {
+   "id": "D56",
+   "title": "Personal Data Handling for Staff",
+   "department": "Compliance",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Only access the customer data you need for your current task. Do not copy customer data to personal devices, personal email or messaging apps. Customer data must not leave Singapore without Compliance approval. If you think customer data has been sent to the wrong person, report it to the security team within one hour.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D56",
+   "links": []
+  },
+  {
+   "id": "D57",
+   "title": "Vendor Register H2 2026",
+   "department": "Compliance",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "Material vendors on the register: CloudCore hosts the core lending platform under a contract running to 2028; VeriFast provides identity verification; Apex Recoveries and Merlion Collect provide collections. VeriFast and Apex Recoveries have not completed a business continuity test in 2026.",
+   "source": "confluence",
+   "acl": {
+    "space": "compliance",
+    "restrictions": {
+     "groups": [
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/compliance/D57",
+   "links": []
+  },
+  {
+   "id": "D58",
+   "title": "Procurement Policy",
+   "department": "Finance",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Purchases above S$5,000 need three written quotes. Purchases above S$50,000 require approval from the Chief Financial Officer and a contract review by Legal. New vendors that will handle customer data must also be assessed by Compliance before onboarding.",
+   "source": "confluence",
+   "acl": {
+    "space": "finance",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/finance/D58",
+   "links": []
+  },
+  {
+   "id": "D59",
+   "title": "Series B Investor Pipeline",
+   "department": "Executive",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "executive"
+   ],
+   "text": "As of September 2026, four investors have signed non-disclosure agreements for the Series B: two regional venture funds, one Japanese corporate investor and one sovereign-linked fund. Term sheets are expected by December 2026, and the lead investor is expected to take at least US$15 million.",
+   "source": "confluence",
+   "acl": {
+    "space": "exec",
+    "restrictions": {
+     "groups": [
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/exec/D59",
+   "links": []
+  },
+  {
+   "id": "D60",
+   "title": "Company Town Hall Q3 2026 Summary",
+   "department": "Executive",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "At the Q3 town hall the CEO shared that LumenPay has passed 250,000 customers and is preparing for its next stage of growth. Hiring will continue in risk, engineering and collections. Questions about fundraising and acquisitions were not answered because they are confidential.",
+   "source": "confluence",
+   "acl": {
+    "space": "exec",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/exec/D60",
+   "links": []
+  },
+  {
+   "id": "D61",
+   "title": "Market Expansion Assessment: Malaysia",
+   "department": "Executive",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "executive"
+   ],
+   "text": "Entering Malaysia organically would take about 18 months and require an e-money licence. Acquiring an existing e-wallet operator would cut the time to market to about six months. The assessment recommends the acquisition route, subject to due diligence on the target's compliance history.",
+   "source": "confluence",
+   "acl": {
+    "space": "exec",
+    "restrictions": {
+     "groups": [
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/exec/D61",
+   "links": []
+  },
+  {
+   "id": "D62",
+   "title": "FY2026 Budget Performance H1",
+   "department": "Executive",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "executive"
+   ],
+   "text": "First-half FY2026 operating expenses were S$16.2 million against a budget of S$17.0 million. Marketing underspent by S$0.6 million because the LumenSplit campaign was delayed. Technology spending was on budget.",
+   "source": "confluence",
+   "acl": {
+    "space": "exec",
+    "restrictions": {
+     "groups": [
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/exec/D62",
+   "links": []
+  },
+  {
+   "id": "D63",
+   "title": "Organisation Chart",
+   "department": "HR",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "LumenPay is led by the CEO. The executive committee also includes the Chief Risk Officer, Chief Financial Officer, Chief Technology Officer, Chief People Officer and Head of Compliance. The Model Validation unit reports to the Chief Risk Officer. The company has about 140 employees.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D63",
+   "links": []
+  },
+  {
+   "id": "D64",
+   "title": "Scorecard v3 Monitoring Report Q2 2026",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "executive"
+   ],
+   "text": "The population stability index for Scorecard v3 was 0.18 in Q2 2026, up from 0.11 in Q1. Gini on recent approvals fell to 0.47. The monitoring team recommends bringing the recalibration forward if the population stability index exceeds 0.25.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D64",
+   "links": []
+  },
+  {
+   "id": "D65",
+   "title": "Model Inventory",
+   "department": "Risk",
+   "sensitivity": "confidential",
+   "allowed_roles": [
+    "risk_analyst",
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "The model inventory lists five production models: Scorecard v3 for LumenFlex applications, a LumenSplit limit model, a behavioural score for collections prioritisation, a fraud anomaly model, and an income estimation model. Each model has a named owner and a last validation date.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D65",
+   "links": []
+  },
+  {
+   "id": "D66",
+   "title": "Model Validation Report: Scorecard v3",
+   "department": "Risk",
+   "sensitivity": "restricted",
+   "allowed_roles": [
+    "risk_analyst",
+    "compliance_officer",
+    "executive"
+   ],
+   "text": "The Model Validation unit approved Scorecard v3 with two conditions: monthly monitoring of the population stability index, and a fairness review of approval rates by age band before the Q1 2027 recalibration. The out-of-time Gini of 0.52 was reproduced independently.",
+   "source": "confluence",
+   "acl": {
+    "space": "risk",
+    "restrictions": {
+     "groups": [
+      "risk_analyst",
+      "compliance_officer",
+      "executive"
+     ]
+    }
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/risk/D66",
+   "links": []
+  },
+  {
+   "id": "D67",
+   "title": "Laptop and Equipment Policy",
+   "department": "IT",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "New joiners receive a company laptop and one external monitor. Lost or stolen equipment must be reported to IT and to the security team within one hour. Personal software may not be installed; request software through the IT service portal.",
+   "source": "confluence",
+   "acl": {
+    "space": "it",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/it/D67",
+   "links": []
+  },
+  {
+   "id": "D68",
+   "title": "Travel Policy",
+   "department": "Finance",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Economy class is used for flights under eight hours. Hotel costs are capped at S$250 per night within the region. Travel should be booked through the company travel portal at least 14 days in advance where possible. The meal allowance while travelling is S$60 per day.",
+   "source": "confluence",
+   "acl": {
+    "space": "finance",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/finance/D68",
+   "links": []
+  },
+  {
+   "id": "D69",
+   "title": "Learning and Development Allowance",
+   "department": "HR",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "Each employee has an annual learning allowance of S$1,500 for courses, certifications and books. Claims are submitted through the expense system with proof of completion. Unused allowance does not carry forward to the next year.",
+   "source": "confluence",
+   "acl": {
+    "space": "hr",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/hr/D69",
+   "links": []
+  },
+  {
+   "id": "D70",
+   "title": "Office Access and Visitors",
+   "department": "Operations",
+   "sensitivity": "internal",
+   "allowed_roles": [
+    "employee",
+    "risk_analyst",
+    "compliance_officer",
+    "hr_manager",
+    "executive"
+   ],
+   "text": "The office is open from 7am to 10pm on weekdays. Visitors must be registered in advance and escorted at all times. Access cards must be worn visibly, and lost cards must be reported to the office manager.",
+   "source": "confluence",
+   "acl": {
+    "space": "ops",
+    "restrictions": {}
+   },
+   "updated_at": "2026-09-23T09:00:00+08:00",
+   "url": "https://confluence.lumenpay.example/ops/D70",
+   "links": []
+  }
+ ]
 }

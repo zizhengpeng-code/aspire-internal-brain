@@ -3,9 +3,10 @@ pre-filtering inside the vector store, incremental sync, immediate revocation.
 
     python -m unittest discover tests
 """
-import copy, json, os, sys, tempfile, unittest
+import copy, json, os, shutil, sys, tempfile, unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from langchain_core.embeddings import DeterministicFakeEmbedding
+import acl
 from kb import RoleAwareKB
 from retrieval import BM25, CachedEmbeddings, Hybrid, VectorIndex
 
@@ -56,7 +57,17 @@ class StageB(unittest.TestCase):
         vec = self.index(DOCS)
         kb = RoleAwareKB(CORPUS, retriever=vec, k=200)
         self.assertIn("D07", kb.retrieve("risk_analyst", "LumenFlex credit policy")["returned"])
-        kb.docs["D07"]["allowed_roles"].remove("risk_analyst")  # ACL change only; index untouched
+        # Revoke through the directory (the source of truth for group membership):
+        # only state/directory.json changes, the index and the corpus are untouched.
+        state = os.path.join(ROOT, "state")
+        os.makedirs(state, exist_ok=True)
+        with open(os.path.join(ROOT, "data", "directory.json"), encoding="utf-8") as f:
+            directory = json.load(f)
+        directory["users"]["persona_risk_analyst"]["groups"].remove("risk_analyst")
+        with open(os.path.join(state, "directory.json"), "w", encoding="utf-8") as f:
+            json.dump(directory, f)
+        self.addCleanup(lambda: (shutil.rmtree(state, ignore_errors=True), acl.reload()))
+        acl.reload()
         self.assertNotIn("D07", kb.retrieve("risk_analyst", "LumenFlex credit policy")["returned"])
 
 if __name__ == "__main__":

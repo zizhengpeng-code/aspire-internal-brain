@@ -1,0 +1,62 @@
+{
+  "_comment": "Mirror of the identity provider and the four source platforms' native permission state. Subjects are written as user:<id> or group:<name>; a user's groups are listed in users.<id>.groups. This file is the source of truth for access decisions (acl.py). Runtime edits go to state/directory.json (see simulate.py), never here.",
+  "users": {
+    "jdoe": {"name": "Jamie Doe", "title": "Backend Engineer", "employment": "employee", "groups": ["staff", "eng"]},
+    "wlin": {"name": "Wei Lin", "title": "SRE (on-call)", "employment": "employee", "groups": ["staff", "eng", "sre"]},
+    "sho": {"name": "Sam Ho", "title": "Security Engineer", "employment": "employee", "groups": ["staff", "eng", "security"]},
+    "atan": {"name": "Alex Tan", "title": "QA Contractor (Bluefin QA)", "employment": "contractor", "groups": ["contractors"]},
+    "glim": {"name": "Grace Lim", "title": "Compliance Officer", "employment": "employee", "groups": ["staff", "compliance_officer"]},
+
+    "persona_employee": {"name": "Persona Employee", "title": "Employee (legacy role)", "employment": "employee", "groups": ["staff", "employee"]},
+    "persona_risk_analyst": {"name": "Persona Risk Analyst", "title": "Risk Analyst (legacy role)", "employment": "employee", "groups": ["staff", "risk_analyst"]},
+    "persona_compliance_officer": {"name": "Persona Compliance Officer", "title": "Compliance Officer (legacy role)", "employment": "employee", "groups": ["staff", "compliance_officer"]},
+    "persona_hr_manager": {"name": "Persona HR Manager", "title": "HR Manager (legacy role)", "employment": "employee", "groups": ["staff", "hr_manager"]},
+    "persona_executive": {"name": "Persona Executive", "title": "Executive (legacy role)", "employment": "employee", "groups": ["staff", "executive"]}
+  },
+
+  "confluence": {
+    "spaces": {
+      "eng": {"view": ["group:eng"]},
+      "payment-gateway": {"view": ["group:eng"]},
+      "security": {"view": ["group:security"]},
+      "vendor-hub": {"view": ["group:staff", "group:contractors"]},
+
+      "hr": {"view": ["group:staff"]},
+      "it": {"view": ["group:staff"]},
+      "finance": {"view": ["group:staff"]},
+      "product": {"view": ["group:staff"]},
+      "risk": {"view": ["group:staff"]},
+      "compliance": {"view": ["group:staff"]},
+      "exec": {"view": ["group:staff"]},
+      "ops": {"view": ["group:staff"]}
+    }
+  },
+
+  "jira": {
+    "projects": {
+      "DBMIG": {"browse": ["group:eng"]},
+      "PAY": {"browse": ["group:eng"]},
+      "SEC": {"browse": ["group:eng"]}
+    },
+    "security_levels": {
+      "security-team": ["group:security"]
+    }
+  },
+
+  "slack": {
+    "channels": {
+      "#db-migration": {"private": false, "members": ["user:jdoe", "user:wlin", "user:sho"]},
+      "#sre-private": {"private": true, "members": ["user:wlin", "user:sho"]},
+      "#payments-incident": {"private": true, "members": ["user:jdoe", "user:wlin", "user:sho"]},
+      "#auth-service": {"private": false, "members": ["user:jdoe", "user:sho"]},
+      "#payments-eng": {"private": false, "members": ["user:jdoe", "user:wlin", "user:sho", "user:atan"]}
+    }
+  },
+
+  "gdrive": {
+    "folders": {
+      "eng-postmortems": {"shared_with": ["group:eng"]},
+      "vendor-qa": {"shared_with": ["group:eng", "user:atan"]}
+    }
+  }
+}
