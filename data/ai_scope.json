@@ -1,0 +1,5 @@
+{
+  "_comment": "AI retrieval scope: an exclusion list on top of the source systems' permissions. Documents/locations listed here stay accessible in their source system but are treated as if they did not exist by search / open_doc / follow_links (audit reason ai_scope_excluded). Runtime edits go to state/ai_scope.json (see simulate.py exclude).",
+  "exclude_docs": [],
+  "exclude_locations": []
+}

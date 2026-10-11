@@ -13,6 +13,7 @@ never returned to the model. This is a deliberate trade-off (see the README): it
 the per-document allow/deny trail and the burst alert possible, at the cost of one
 extra retrieval per query.
 """
+import ai_scope
 import authz
 
 SEARCH = {
@@ -81,6 +82,17 @@ def _decision(doc_id, doc, decision):
             "allow": decision.allow, "layer": decision.layer, "reason": decision.reason}
 
 
+def _access(session, doc_id, doc):
+    """Access decision with the AI retrieval scope folded in: an excluded document is
+    treated as not readable (reason ``ai_scope_excluded``), like a permission denial."""
+    decision = authz.check(session.user_id, doc_id)
+    if decision.allow:
+        scope = ai_scope.reason(doc)
+        if scope:
+            return authz.Decision(False, "platform", scope)
+    return decision
+
+
 def make_tools(session):
     docs = session.docs
 
@@ -88,6 +100,7 @@ def make_tools(session):
         query = args.get("query", "")
         k = int(args.get("k") or 6)
         candidates = authz.list_readable(session.user_id)
+        candidates = ai_scope.allowed_ids(candidates, docs)
         platforms = set(args.get("platforms") or [])
         since = args.get("since")
         if platforms:
@@ -113,7 +126,7 @@ def make_tools(session):
             doc = docs.get(doc_id)
             if doc is None:
                 continue
-            decisions.append(_decision(doc_id, doc, authz.check(session.user_id, doc_id)))
+            decisions.append(_decision(doc_id, doc, _access(session, doc_id, doc)))
         return {"results": results}, {"returned": returned, "decisions": decisions}
 
     def open_doc(args):
@@ -122,7 +135,7 @@ def make_tools(session):
         if doc is None:
             decision = authz.Decision(False, "platform", "unknown document")
             return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, None, decision)]}
-        decision = authz.check(session.user_id, doc_id)
+        decision = _access(session, doc_id, doc)
         if not decision.allow:
             return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, doc, decision)]}
         payload = {"doc_id": doc_id, "title": doc["title"], "platform": doc.get("source"),
@@ -133,7 +146,7 @@ def make_tools(session):
     def follow_links(args):
         doc_id = args.get("doc_id")
         doc = docs.get(doc_id)
-        if doc is None or not authz.check(session.user_id, doc_id).allow:
+        if doc is None or not _access(session, doc_id, doc).allow:
             decision = authz.Decision(False, "platform", "source document not visible")
             return {"error": "not_found"}, {"returned": [], "decisions": [_decision(doc_id, doc, decision)]}
         links, decisions, returned = [], [], []
@@ -141,7 +154,7 @@ def make_tools(session):
             linked = docs.get(link_id)
             if linked is None:
                 continue
-            decision = authz.check(session.user_id, link_id)
+            decision = _access(session, link_id, linked)
             decisions.append(_decision(link_id, linked, decision))
             if decision.allow:
                 returned.append(link_id)

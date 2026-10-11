@@ -18,12 +18,22 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import authz
+import ai_scope
 from audit import AuditLog
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 STATE = os.path.join(ROOT, "state")
 UPDATES = os.path.join(ROOT, "data", "updates")
 AUDIT_PATH = os.path.join(ROOT, "logs", "audit.jsonl")
+BACKUP = os.path.join(STATE, "audit_backup.jsonl")
+
+
+def _backup_audit(audit_path=AUDIT_PATH):
+    """Copy the audit log into state/ before tampering with it."""
+    os.makedirs(STATE, exist_ok=True)
+    if os.path.exists(audit_path):
+        shutil.copy2(audit_path, BACKUP)
+    return BACKUP
 
 
 def _write_state_corpus(docs):
@@ -75,6 +85,7 @@ def revoke(user_id, channel):
 
 def tamper(seq, audit_path=AUDIT_PATH):
     """Alter one audit record in place, so verify() reports it."""
+    _backup_audit(audit_path)
     log = AuditLog(audit_path)
     lines = []
     for record in log.records():
@@ -85,6 +96,25 @@ def tamper(seq, audit_path=AUDIT_PATH):
     with open(audit_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
     return log.verify()
+
+
+def truncate(count, audit_path=AUDIT_PATH):
+    """Drop the last `count` audit records (backed up first) to demo truncation."""
+    backup = _backup_audit(audit_path)
+    result = AuditLog(audit_path).truncate(count)
+    return {"backup": backup, **result}
+
+
+def exclude(target, audit_path=AUDIT_PATH):
+    """Add a doc id or a location prefix to the AI exclusion list (state/ai_scope.json)."""
+    scope = ai_scope.current()
+    key = "exclude_locations" if ":" in target else "exclude_docs"
+    if target not in scope[key]:
+        scope[key].append(target)
+    ai_scope.write_scope(scope)
+    AuditLog(audit_path).append({"event": "scope_change", "user_id": "admin",
+                                 "change": "exclude", "target": target, "scope": scope})
+    return scope
 
 
 SEED_QUERIES = [
@@ -114,6 +144,10 @@ def seed(llm=None, retriever="bm25", audit_path=AUDIT_PATH):
 
 
 def reset():
+    """Restore the audit log from the backup (if any), then delete state/."""
+    if os.path.exists(BACKUP):
+        os.makedirs(os.path.dirname(AUDIT_PATH), exist_ok=True)
+        shutil.copy2(BACKUP, AUDIT_PATH)
     shutil.rmtree(STATE, ignore_errors=True)
     authz.reload()
 
@@ -128,8 +162,12 @@ def main(argv=None):
     p_revoke.add_argument("channel")
     p_tamper = sub.add_parser("tamper", help="alter one audit record")
     p_tamper.add_argument("seq", type=int)
+    p_truncate = sub.add_parser("truncate", help="drop the last N audit records")
+    p_truncate.add_argument("count", type=int)
+    p_exclude = sub.add_parser("exclude", help="add a doc id or location to the AI exclusion list")
+    p_exclude.add_argument("target")
     sub.add_parser("seed", help="run a batch of queries to build audit history")
-    sub.add_parser("reset", help="delete state/")
+    sub.add_parser("reset", help="restore the audit log from the backup and delete state/")
     args = parser.parse_args(argv)
 
     if args.command == "update":
@@ -138,6 +176,10 @@ def main(argv=None):
         print(json.dumps(revoke(args.user, args.channel), ensure_ascii=False))
     elif args.command == "tamper":
         print(f"verify() -> {tamper(args.seq)}")
+    elif args.command == "truncate":
+        print(json.dumps(truncate(args.count), ensure_ascii=False))
+    elif args.command == "exclude":
+        print(json.dumps(exclude(args.target), ensure_ascii=False))
     elif args.command == "seed":
         for row in seed():
             print(json.dumps(row, ensure_ascii=False))

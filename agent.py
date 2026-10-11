@@ -156,5 +156,6 @@ def answer(session, question, max_rounds=MAX_ROUNDS):
                           "guard_blocked": None if ok else reason, "model": llm.model,
                           "tokens": {"prompt": usage["prompt_tokens"], "completion": usage["completion_tokens"]},
                           "cost": usage["cost"]})
+    session.audit.checkpoint()   # sign the chain head so a truncation is detectable
     return {"answer": final, "citations": citations, "steps": steps, "refused": refused,
             "usage": usage, "guard": reason}
