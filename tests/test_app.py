@@ -50,6 +50,11 @@ class AppSmoke(unittest.TestCase):
         labels = [m.label for m in at.metric]
         self.assertIn("Leak rate (Targeted ASR)", labels)
         self.assertIn("Cost / query", labels)
+        # every case is still a draft, so the `user` subset is empty and the page must fall
+        # back to `all` instead of rendering nan
+        values = {m.label: m.value for m in at.metric}
+        self.assertNotIn("nan", values["Leak rate (Targeted ASR)"])
+        self.assertNotIn("nan", values["Benign Utility"])
 
     def test_admin_page_exposes_the_five_demo_actions(self):
         at = self.open(page="Admin")

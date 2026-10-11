@@ -25,6 +25,8 @@ import json
 import os
 import re
 import sqlite3
+import threading
+from contextlib import closing
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
@@ -175,7 +177,10 @@ class LLM:
         self.prompt_tokens = self.completion_tokens = 0
         self.cost = 0.0
         self._impl = None
-        self._db = None
+        # The cache connection is opened per operation, never held: the Streamlit UI runs
+        # each rerun in a fresh thread, and a sqlite3 connection may only be used from the
+        # thread that created it. The lock serialises access from concurrent reruns.
+        self._lock = threading.Lock()
 
     @property
     def is_fake(self):
@@ -191,36 +196,41 @@ class LLM:
         self._model().configure(**kwargs)
 
     # ---------------------------------------------------------------- caching
-    def _cache(self):
-        if self.cache_path is None:          # evaluation: no cache, so usage is accurate
+    def _cache_read(self, key):
+        """Cached response for ``key``, or None. No-ops when ``cache_path`` is None
+        (the evaluation runs cache-less so its token and cost counts stay accurate)."""
+        if self.cache_path is None:
             return None
-        if self._db is None:
-            directory = os.path.dirname(self.cache_path)
-            if directory:
-                os.makedirs(directory, exist_ok=True)
-            self._db = sqlite3.connect(self.cache_path)
-            self._db.execute("create table if not exists llm (k text primary key, v text)")
-        return self._db
+        directory = os.path.dirname(self.cache_path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        with self._lock, closing(sqlite3.connect(self.cache_path, timeout=10)) as db:
+            db.execute("create table if not exists llm (k text primary key, v text)")
+            row = db.execute("select v from llm where k=?", (key,)).fetchone()
+        return row[0] if row else None
+
+    def _cache_write(self, key, value):
+        if self.cache_path is None:
+            return
+        with self._lock, closing(sqlite3.connect(self.cache_path, timeout=10)) as db:
+            db.execute("create table if not exists llm (k text primary key, v text)")
+            db.execute("insert or replace into llm values (?, ?)", (key, value))
+            db.commit()
 
     # ------------------------------------------------------------------ invoke
     def invoke(self, messages, tools=None):
         """One completion; cached by sha256(model, messages, tools). Returns an AIMessage."""
         key = _sha(self.model, [_as_dict(m) for m in messages], tools, self.temperature)
-        db = self._cache()
-        if db is not None:
-            row = db.execute("select v from llm where k=?", (key,)).fetchone()
-            if row:
-                self.cache_hits += 1
-                return _ai_from_dict(json.loads(row[0]))
+        cached = self._cache_read(key)
+        if cached is not None:
+            self.cache_hits += 1
+            return _ai_from_dict(json.loads(cached))
         model = self._model()
         if tools:
             model = model.bind_tools(tools)
         ai = model.invoke(messages)
         self._account(ai)
-        if db is not None:
-            db.execute("insert or replace into llm values (?, ?)",
-                       (key, json.dumps(_ai_to_dict(ai), ensure_ascii=False)))
-            db.commit()
+        self._cache_write(key, json.dumps(_ai_to_dict(ai), ensure_ascii=False))
         return ai
 
     def _account(self, ai):

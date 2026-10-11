@@ -318,8 +318,12 @@ def page_roi():
     st.subheader("ROI")
     st.caption("Assumptions are marked; only the leak rate, cost per query and latency are measured.")
     results = latest_results()
-    measured = (results or {}).get("sections", {})
-    measured = measured.get("user") or measured.get("all") or {}
+    sections = (results or {}).get("sections", {})
+    # `user` holds the cases the author has confirmed — the only externally quotable numbers.
+    # While every case is still a draft that subset is empty, so fall back to `all` and say so
+    # rather than rendering a page of nan.
+    subset = "user" if (sections.get("user") or {}).get("n_cases") else "all"
+    measured = sections.get(subset) or {}
 
     st.markdown("#### Measured (from the newest `results/` file)")
     if not results:
@@ -331,8 +335,12 @@ def page_roi():
         cost = measured.get("avg_cost")
         c3.metric("Cost / query", "n/a" if cost is None else f"${cost:.4f}")
         c4.metric("Latency / query", f"{measured.get('avg_seconds', 0) * 1000:.0f} ms")
-        st.caption(f"model `{results.get('model')}` · {results.get('n_cases')} cases · "
+        st.caption(f"subset `{subset}` · model `{results.get('model')}` · "
+                   f"{measured.get('n_cases', results.get('n_cases'))} cases · "
                    f"stamp {results.get('stamp')} · corpus is simulated data")
+        if subset == "all":
+            st.warning("No author-confirmed cases yet, so these are the `all` (internal) numbers — "
+                       "confirm the draft cases and rerun before quoting them externally.")
 
     st.markdown("#### Assumptions (inputs)")
     col1, col2, col3 = st.columns(3)
