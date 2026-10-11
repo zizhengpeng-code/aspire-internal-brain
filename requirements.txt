@@ -1,0 +1,6 @@
+# evaluate.py with --retriever bm25 needs none of these
+chromadb==1.5.9
+langchain-chroma==1.1.0
+langchain-openai==1.6.7
+langchain-core==1.6.6
+openpyxl==3.1.5   # review.py only
