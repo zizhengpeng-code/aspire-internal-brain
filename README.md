@@ -648,7 +648,7 @@ Correspondence only — no framework definitions are reproduced.
 | `app.py` | the Streamlit demo UI |
 | `simulate.py` | demo state changes (content update, revocation, tamper, truncate, reset, index warm-up) |
 | `scripts/capture_scenarios.py` | runs the five demo scenarios end to end and regenerates `docs/scenarios.md` |
-| `tests/` | 105 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI — no external API |
+| `tests/` | 112 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI — no external API |
 | `docs/` | development log, Mermaid diagram sources and pre-rendered SVGs, generated scenario transcripts, UI screenshots |
 
 ## 10. Submission checklist
