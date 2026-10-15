@@ -9,11 +9,19 @@ trust boundary is the graph structure itself. Identity travels in the LangGraph
 runtime context (never in the messages or the tool arguments), so the model cannot
 act as anyone else; ``query_audit`` is only bound for compliance officers.
 
+One rule is enforced in code rather than trusted to the model: when the question being
+asked was *already asked* earlier in the session, the model tends to answer out of the
+transcript instead of retrieving. Such an answer cites documents that were not returned
+this turn, so the guard replaces it with the refusal. ``agent_node`` therefore replaces
+that message with a forced ``search`` on the question, and the ordinary tools node runs
+it — so the answer reflects what is true now, not what was true when it was first asked.
+
     session = Session("jdoe")
     result = answer(session, "What's the status of the database migration project?")
 """
 import json
 import os
+import re
 import uuid
 from typing import TypedDict
 
@@ -148,6 +156,33 @@ def _returned_count(payload):
     return 1 if "doc_id" in payload else 0
 
 
+def _normalise(text):
+    """Lowercase and keep only alphanumerics, so trivial punctuation or whitespace
+    differences do not hide a repeated question."""
+    return " ".join(re.findall(r"[a-z0-9]+", (text or "").lower()))
+
+
+def _current_question(messages):
+    for message in reversed(messages):
+        if isinstance(message, HumanMessage):
+            return message.content or ""
+    return ""
+
+
+def _is_repeated_question(messages):
+    """True when the question being asked now was already asked earlier in this session.
+
+    A repeated question is the case where the model tends to answer out of the
+    transcript instead of retrieving: it has the previous answer in front of it, and
+    copying it looks like the cheapest thing to do.
+    """
+    question = _normalise(_current_question(messages))
+    if not question:
+        return False
+    asked = [m.content or "" for m in messages if isinstance(m, HumanMessage)]
+    return sum(1 for q in asked if _normalise(q) == question) > 1
+
+
 def build_graph(session, max_rounds=MAX_ROUNDS):
     """Compile the state graph for one session. Returns (compiled graph, schemas)."""
     schemas, call = make_tools(session)
@@ -156,6 +191,17 @@ def build_graph(session, max_rounds=MAX_ROUNDS):
         user_id = runtime.context["user_id"]           # identity from the runtime context
         tools = schemas if state.get("rounds", 0) < max_rounds else None   # forced answer after N rounds
         message = session.llm.invoke(state["messages"], tools=tools)
+        if (state.get("rounds", 0) == 0 and not getattr(message, "tool_calls", None)
+                and _is_repeated_question(state["messages"])):
+            # The model answered a repeated question out of the transcript. Its answer
+            # cites documents that were *not* returned this turn, so the guard would
+            # (correctly) replace it with the refusal. The retrieval is therefore forced
+            # here, in code: the model must answer from what is true now. The graph then
+            # runs the ordinary tools node, so the result is filtered, audited and
+            # counted exactly like a search the model asked for itself.
+            message = AIMessage(content="", tool_calls=[
+                {"name": "search", "args": {"query": _current_question(state["messages"])},
+                 "id": "forced_search_1"}])
         return {"messages": state["messages"] + [message]}
 
     def tools_node(state, runtime):

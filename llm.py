@@ -16,6 +16,10 @@ Scripted fakes (selected by ``LLM_MODEL``), all implementing ``bind_tools`` /
              opens and cites it (answer cases) or emits the refusal (deny cases).
 * ``leaky``  used by the evaluation only: cites a visible document *and* a sentence
              carrying an invisible document's canary, to measure the leak rate.
+* ``sticky`` regression test only: like ``fake``, but when the *same* question has
+             already been answered in the transcript it recites that answer and calls
+             no tool — the real model's failure mode when a question is repeated in
+             one session (see the defect fixed in ``agent.py``).
 
 Token counts come from ``usage_metadata``; cost is tokens x
 ``LLM_PRICE_IN_PER_M`` / ``LLM_PRICE_OUT_PER_M`` (recorded as None when unset).
@@ -30,7 +34,7 @@ from contextlib import closing
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-FAKE_MODELS = ("fake", "oracle", "leaky")
+FAKE_MODELS = ("fake", "oracle", "leaky", "sticky")
 
 
 def _env_float(name):
@@ -88,6 +92,8 @@ class _FakeModel:
             return self._oracle(tool_messages)
         if self.kind == "leaky":
             return self._leaky(tool_messages)
+        if self.kind == "sticky":
+            return self._sticky(messages, tool_messages)
         return self._fake(messages, tool_messages)
 
     # ------------------------------------------------------------- scripted
@@ -97,15 +103,18 @@ class _FakeModel:
                 return message.content or ""
         return ""
 
-    def _fake(self, messages, tool_messages):
-        question = self._question(messages)
-        if not tool_messages:
-            if "repeat" in question.lower():
-                previous = next((m.content for m in reversed(messages)
-                                 if isinstance(m, AIMessage) and m.content), "")
-                return AIMessage(content=previous or "")
-            return AIMessage(content="", tool_calls=[
-                {"name": "search", "args": {"query": question}, "id": "call_search_1"}])
+    @staticmethod
+    def _last_answer(messages):
+        return next((m.content for m in reversed(messages)
+                     if isinstance(m, AIMessage) and m.content), "")
+
+    @staticmethod
+    def _search_call(question):
+        return AIMessage(content="", tool_calls=[
+            {"name": "search", "args": {"query": question}, "id": "call_search_1"}])
+
+    @staticmethod
+    def _snippets(tool_messages):
         try:
             payload = json.loads(tool_messages[-1].content)
         except (ValueError, TypeError):
@@ -118,6 +127,31 @@ class _FakeModel:
                 # retrieved content (enough for the multi-turn revocation demo)
                 parts.append(f"{snippet[:220]} [{result.get('doc_id')}]")
         return AIMessage(content=" ".join(parts))
+
+    @staticmethod
+    def _asked_twice(messages, question):
+        asked = [m.content or "" for m in messages if isinstance(m, HumanMessage)]
+        return asked.count(question) > 1
+
+    def _fake(self, messages, tool_messages):
+        question = self._question(messages)
+        if not tool_messages:
+            if "repeat" in question.lower():
+                return AIMessage(content=self._last_answer(messages))
+            return self._search_call(question)
+        return self._snippets(tool_messages)
+
+    def _sticky(self, messages, tool_messages):
+        """The real model's failure mode, reproduced: once the same question has been
+        answered in the transcript it recites that answer and calls no tool. The guard
+        then replaces the whole answer with the refusal, because no document was
+        returned *this* turn. ``fake`` always searches, so it cannot show the defect."""
+        question = self._question(messages)
+        if not tool_messages:
+            if self._asked_twice(messages, question):
+                return AIMessage(content=self._last_answer(messages))
+            return self._search_call(question)
+        return self._snippets(tool_messages)
 
     def _oracle(self, tool_messages):
         case = self.case or {}

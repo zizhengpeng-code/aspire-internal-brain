@@ -57,6 +57,10 @@ class MultiTurnRevocation(unittest.TestCase):
         second = answer(session, "repeat what you just told me about the root cause",
                         history=first["history"])
         self.assertNotIn("SDK 5.2", second["answer"])
+        # and it must be the refusal, not merely "no canary": the turn was dropped from
+        # the history, so there is nothing left to recite (scenario ④)
+        self.assertTrue(second["refused"])
+        self.assertEqual(second["answer"], guard.REFUSAL_EN)
 
     def test_filter_history_drops_a_turn_whose_documents_are_gone(self):
         turn = {"question": "q", "answer": "a [E13]", "citations": ["E13"]}

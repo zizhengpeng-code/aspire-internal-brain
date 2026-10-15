@@ -156,6 +156,62 @@ class RunbookFreshness(AgentBase):
         self.assertEqual(doc["updated_at"], "2026-10-14T13:00:00+08:00")
 
 
+class RepeatedQuestionIsRetrievedAgain(AgentBase):
+    """Defect found while recording the demo (scenario ②).
+
+    Asking the *same* question twice in one session made the model answer out of the
+    transcript: it cited a document that had not been returned *this* turn, so the guard
+    replaced the whole answer with the refusal — ``Agent steps (0)``. A repeated question
+    must be retrieved again, so the answer reflects what is true now (rev 8), not the
+    answer that was true when the question was first asked (rev 7).
+    """
+
+    def setUp(self):
+        super().setUp()
+        # `sticky` reproduces the real model's behaviour; `fake` always searches, so it
+        # cannot show the defect.
+        self.llm = LLM(model="sticky", cache_path=os.path.join(self.tmp.name, "llm.sqlite"))
+
+    def test_a_repeated_question_returns_the_new_revision(self):
+        session = self.session("wlin")
+        question = "What's the latest runbook for the payment-service incident?"
+        first = answer(session, question)
+        self.assertIn("E06", first["citations"])
+        self.assertIn("PGW-RB-7", first["answer"])               # rev 7 when first asked
+        self.assertNotIn("PGW-RB-8", first["answer"])
+
+        embeddings = CachedEmbeddings(DeterministicFakeEmbedding(size=32), "fake",
+                                      path=os.path.join(self.tmp.name, "emb.sqlite"))
+        simulate.update("E06", embeddings=embeddings,           # rev 7 -> rev 8, 13:00
+                        persist_dir=os.path.join(self.tmp.name, "chroma"))
+        session.reload()                                        # what the Admin page does
+
+        second = answer(session, question, history=first["history"])
+        self.assertFalse(second["refused"])
+        self.assertNotEqual(second["answer"], guard.REFUSAL_EN)
+        self.assertIn("E06", second["citations"])
+        # the answer must reflect what is true *now*, not the rev 7 the model had in
+        # front of it in the transcript
+        self.assertIn("PGW-RB-8", second["answer"])
+        self.assertNotIn("PGW-RB-7", second["answer"])
+        self.assertTrue(second["steps"], "a repeated question must be retrieved again")
+        # rev 8 is the revision that carries the new failover step, and it is what the
+        # agent can retrieve for this question now (search snippets are truncated, so
+        # assert on the document itself)
+        _, call = make_tools(session)
+        doc = call("open_doc", {"doc_id": "E06"})
+        self.assertEqual(doc["updated_at"], "2026-10-14T13:00:00+08:00")
+        self.assertIn("psp_failover", doc["text"])
+
+    def test_the_forced_retrieval_is_a_search_on_the_question(self):
+        session = self.session("wlin")
+        question = "What's the latest runbook for the payment-service incident?"
+        first = answer(session, question)
+        second = answer(session, question, history=first["history"])
+        self.assertEqual([s["tool"] for s in second["steps"]], ["search"])
+        self.assertEqual(second["steps"][0]["args"]["query"], question)
+
+
 class RevocationTakesEffect(AgentBase):
     def test_revoking_a_channel_hides_its_documents_immediately(self):
         session = self.session("jdoe")
