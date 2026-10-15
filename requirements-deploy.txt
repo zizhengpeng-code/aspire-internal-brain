@@ -1,0 +1,13 @@
+# Dependencies for the hosted public demo only (start.py). Versions match requirements.txt.
+#
+# The demo answers from BM25 and uses the local authorization backend, so two packages are
+# deliberately left out:
+#   * chromadb / langchain-chroma  — imported lazily inside retrieval.VectorIndex.__init__;
+#     without it the vector-index warm-up degrades gracefully (app.warm_index catches it).
+#   * openfga-sdk                  — imported lazily inside authz.openfga's methods;
+#     AUTHZ_BACKEND=local never touches it.
+# Both stay in requirements.txt, where the vector retriever and the OpenFGA backend need them.
+streamlit==1.65.0
+langgraph==1.2.14
+langchain-core==1.6.6
+langchain-openai==1.6.7
