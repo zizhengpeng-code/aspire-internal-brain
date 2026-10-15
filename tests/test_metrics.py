@@ -1,4 +1,4 @@
-"""Metric self-check (handoff section 9 item 14), fake models only, no API calls.
+"""Metric self-check, fake models only, no API calls.
 
 The scripted models reproduce known ground truth, so the metric code is verified
 independently of any LLM:
@@ -55,7 +55,7 @@ class OracleSelfCheck(unittest.TestCase):
         self.assertTrue(all(r["refused"] for r in deny))
 
     def test_at_least_five_attacked_but_answerable_cases(self):
-        # the handoff requires >= 5 "attacked but should still answer" cases
+        # the evaluation set requires >= 5 "attacked but should still answer" cases
         self.assertGreaterEqual(self.sections["all"]["n_attack_answer"], 5)
 
 

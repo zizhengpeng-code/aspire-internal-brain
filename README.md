@@ -51,7 +51,8 @@ the next (AG21 was answered from E03 when the demo history was seeded, and refus
 The two earlier reports
 ([`2026-10-11_205557`](results/2026-10-11_205557.agent.md),
 [`2026-10-11_215647`](results/2026-10-11_215647.agent.md)) predate the two fixes recorded in
-`docs/dev_log.md` and AG21's relabelling, so they are kept for reference rather than as
+the development log (provided separately with the competition submission) and AG21's
+relabelling, so they are kept for reference rather than as
 like-for-like comparisons. Single-run figures with small denominators are point estimates,
 not constants.
 
@@ -63,9 +64,13 @@ Retrieval layer (`python evaluate.py`, same corpus, 132 draft cases, BM25/chunk,
 | `post_filter` | 88.9% | **0.0%** | **0.0%** |
 | `pre_filter` | **89.5%** | **0.0%** | **0.0%** |
 
+*Source: [`results/2026-10-11_205601.json`](results/2026-10-11_205601.json) (`all.exp1`).*
+
 Retriever comparison (`--compare`, pre_filter): **vector/doc recall@3 98.4%** > hybrid/doc
 96.8% > bm25/doc 92.1%. BM25 is the default because it needs no embedding API and its
 recall is already sufficient for the demo.
+
+*Source: [`results/2026-10-11_205844.json`](results/2026-10-11_205844.json) (`all.exp3`).*
 
 **Honesty note on the numbers.** Both evaluation sets were drafted by the assistant and are
 still marked `"source": "draft"`; only cases the author has personally confirmed are allowed
@@ -246,8 +251,9 @@ so an injection has nowhere to send what it finds.
 ### 3.1 The UI
 
 Screenshots of `streamlit run app.py`, driving the real app in headless Chrome (the method
-is recorded in `docs/dev_log.md`; the driver script is not committed because it needs a local
-Chrome). The people, the corpus and every number are simulated. Switching the signed-in user
+is recorded in the development log, provided separately with the competition submission; the
+driver script is not committed because it needs a local Chrome). The people, the corpus and
+every number are simulated. Switching the signed-in user
 is the sidebar dropdown — that is the whole of the "SSO" here, and the agent still receives
 the identity only through the LangGraph runtime context.
 
@@ -559,7 +565,7 @@ pip install -r requirements.txt
 cp .env.example .env          # then fill in LLM_API_KEY (and EMBED_* for vector retrieval)
 python evaluate.py            # retrieval evaluation (BM25, no API needed)
 python evaluate_agent.py      # agent evaluation, with the ablation sweep
-python -m unittest discover tests     # 112 tests, no external API, no OpenFGA service
+python -m unittest discover tests     # 114 tests, no external API, no OpenFGA service
 
 streamlit run app.py          # the demo UI
 python scripts/capture_scenarios.py   # regenerate docs/scenarios.md
@@ -617,6 +623,7 @@ mmdc -i docs/architecture.mmd -o docs/architecture.svg -b white
 | **BM25 recall on synonyms** | Measured: bm25/doc recall@3 92.1% vs vector/doc 98.4%. Mitigated by the hybrid retriever; the default stays BM25 to keep the demo dependency-free. |
 | **Over-refusal under attack** | Measured 13.0% false refusals (3 of 23) in the latest run; two cases wrapped a legitimate question in an injection and were refused (AG33, AG34), the third asked for a figure only a hidden document contains (AG21). A usability cost, not a security one. |
 | **Evaluation set is not author-confirmed** | Every metric here comes from draft cases; the `user` subset is empty. Reported as such. |
+| **Rephrased repeated question** | The repeated-question fix re-retrieves only on an *exact* repeat (after normalising case, punctuation and whitespace). A *rephrased* repeat can still be answered from the conversation history and then refused by the guard. Safe failure — the guard still blocks any answer whose citations are no longer readable. **Accepted**. |
 
 ## 8. Security-framework mapping
 
@@ -648,13 +655,13 @@ Correspondence only — no framework definitions are reproduced.
 | `app.py` | the Streamlit demo UI |
 | `simulate.py` | demo state changes (content update, revocation, tamper, truncate, reset, index warm-up) |
 | `scripts/capture_scenarios.py` | runs the five demo scenarios end to end and regenerates `docs/scenarios.md` |
-| `tests/` | 112 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI — no external API |
-| `docs/` | development log, Mermaid diagram sources and pre-rendered SVGs, generated scenario transcripts, UI screenshots |
+| `tests/` | 114 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI — no external API |
+| `docs/` | Mermaid diagram sources and pre-rendered SVGs, generated scenario transcripts, UI screenshots |
 
 ## 10. Submission checklist
 
-- [x] Working prototype in git (`T0`–`T7` commits, one per task; nothing pushed)
-- [x] `docs/dev_log.md` — a dated entry per task, with the problems met and how they were solved
+- [x] Working prototype in git (`T0`–`T7` commits, one per task)
+- [x] Development log — a dated entry per task, with the problems met and how they were solved (provided separately with the competition submission, not in this repository)
 - [x] Architecture diagram and trust-boundary diagram, as Mermaid source and pre-rendered SVG (`docs/architecture.*`, `docs/trust_boundary.*`)
 - [x] LangGraph agent graph (`docs/agent_graph.mmd`, generated by LangGraph)
 - [x] Evaluation scripts and results (`evaluate.py`, `evaluate_agent.py`, `results/`)
@@ -666,4 +673,4 @@ Correspondence only — no framework definitions are reproduced.
 - [x] README in English (this file)
 - [ ] Confirm the draft evaluation cases so the `user` subset is non-empty, then rerun both evaluations
 - [ ] Record the 5–8 minute demo video (screen capture of `streamlit run app.py`)
-- [ ] Decide whether to push the repository and whether it is public
+- [x] Repository pushed and public: <https://github.com/zizhengpeng-code/aspire-internal-brain>

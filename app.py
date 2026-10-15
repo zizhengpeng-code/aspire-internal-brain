@@ -1,4 +1,4 @@
-"""Streamlit demo UI for the Internal Brain (handoff section 8).
+"""Streamlit demo UI for the Internal Brain — the four demo pages (chat, admin, compliance, ROI).
 
     streamlit run app.py
 

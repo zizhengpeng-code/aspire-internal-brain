@@ -1,4 +1,4 @@
-"""Agent-layer evaluation (section 5.10 of the handoff). Metrics use AgentDojo's names.
+"""Agent-layer evaluation. Metrics use AgentDojo's naming (Benign Utility, Targeted ASR, ...).
 
     python evaluate_agent.py                 # run with LLM_MODEL (default: fake)
     python evaluate_agent.py --no-ablate     # skip the ablation sweep (cheaper)
