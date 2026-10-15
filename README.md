@@ -5,10 +5,10 @@ end-to-end prototype of an internal assistant that answers natural-language ques
 four source systems, **only** from documents the signed-in user is allowed to read at that
 moment, cites every factual claim, and keeps a tamper-evident, queryable audit trail.
 
-**Live demo:** <https://b319111c9981413bb9df35efe27293cb.sg2.agentos-app.run> (Tencent Cloud,
+**Live demo:** <https://fdaf27987d0c4b08a5e370cb99c60d34.sg2.agentos-app.run> (Tencent Cloud,
 Singapore). It is one shared instance: sign in as any demo user from the sidebar, and press
-**Reset demo state** on the Admin page after trying the Admin actions. (A sandbox that goes
-unused for long enough is reclaimed and comes back on a new hostname, so treat the link as
+**Reset demo state** on the Admin page after trying the Admin actions. (Each deployment is
+handed a fresh hostname — the sandbox is reused, the public URL is not — so treat the link as
 per-deployment rather than permanent.)
 
 > All companies, people, document ids and numbers in the corpus are invented. Regulatory
