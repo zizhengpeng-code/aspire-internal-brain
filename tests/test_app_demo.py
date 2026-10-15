@@ -369,6 +369,100 @@ class ScopeQuestionIsFree(RuntimeFilesUntouched, EnvBase):
         self.assertEqual([b.label for b in at.button][:len(expected)], expected)
 
 
+@unittest.skipUnless(AppTest, "streamlit not installed")
+class SuggestionsStayAvailable(RuntimeFilesUntouched, EnvBase):
+    """After every answer the remaining example suggestions are shown under the last turn.
+
+    A click takes exactly the same path as typing. Once all are asked, nothing is shown.
+    One-line hints chain the demo scenarios.
+    """
+
+    def test_after_one_example_the_other_two_are_still_shown(self):
+        os.environ["LLM_MODEL"] = "fake"
+        at = self.open()
+        first = app.EXAMPLE_QUESTIONS["jdoe"][0]
+        [b for b in at.button if b.label == first][0].click().run()
+        self.assertFalse(at.exception)
+
+        remaining = [b.label for b in at.button]
+        self.assertNotIn(first, remaining)
+        for q in app.EXAMPLE_QUESTIONS["jdoe"][1:]:
+            self.assertIn(q, remaining)
+
+    def test_after_all_three_examples_no_suggestions_remain(self):
+        os.environ["LLM_MODEL"] = "fake"
+        at = self.open()
+        for q in app.EXAMPLE_QUESTIONS["jdoe"]:
+            [b for b in at.button if b.label == q][0].click().run()
+        self.assertFalse(at.exception)
+        # No remaining suggestion buttons at all
+        remaining = [b.label for b in at.button]
+        for q in app.EXAMPLE_QUESTIONS["jdoe"]:
+            self.assertNotIn(q, remaining)
+
+    def test_typing_an_example_counts_as_asked(self):
+        os.environ["LLM_MODEL"] = "fake"
+        at = self.open()
+        first = app.EXAMPLE_QUESTIONS["jdoe"][0]
+        at.chat_input[0].set_value(first).run()
+        self.assertFalse(at.exception)
+
+        remaining = [b.label for b in at.button]
+        self.assertNotIn(first, remaining)
+        self.assertIn(app.EXAMPLE_QUESTIONS["jdoe"][1], remaining)
+
+    def test_a_greeting_keeps_the_full_list(self):
+        at = self.open()
+        at.chat_input[0].set_value("Hello").run()
+        self.assertFalse(at.exception)
+        self.assertEqual([b.label for b in at.button][:3], app.EXAMPLE_QUESTIONS["jdoe"])
+
+    def test_a_scope_question_keeps_the_full_list(self):
+        at = self.open()
+        at.chat_input[0].set_value("what can I know in this system?").run()
+        self.assertFalse(at.exception)
+        self.assertEqual([b.label for b in at.button][:3], app.EXAMPLE_QUESTIONS["jdoe"])
+
+    def test_hint_for_jdoe_after_root_cause_question(self):
+        os.environ["LLM_MODEL"] = "fake"
+        at = self.open()
+        q = "What was the root cause of the Oct 13 payments incident?"
+        at.chat_input[0].set_value(q).run()
+        self.assertFalse(at.exception)
+        self.assertTrue(any("payments-incident" in c.value for c in at.caption),
+                        [c.value for c in at.caption])
+
+    def test_hint_for_wlin_after_runbook_question(self):
+        os.environ["LLM_MODEL"] = "fake"
+        at = self.open()
+        # switch to wlin first
+        at.sidebar.selectbox[0].set_value("wlin").run()
+        q = "Show me the latest runbook for the payment service"
+        at.chat_input[0].set_value(q).run()
+        self.assertFalse(at.exception)
+        self.assertTrue(any("13:00" in c.value for c in at.caption),
+                        [c.value for c in at.caption])
+
+    def test_hint_for_atan_after_a_refusal(self):
+        # The fake model never refuses (it always returns citations), so we test the check
+        # directly rather than through a full agent run.
+        turn = {"question": "Show me the security risk register.", "refused": True, "steps": []}
+        matched = any(check(turn) for check, _ in app._NEXT_STEPS.get("atan", []))
+        self.assertTrue(matched, "atan's hint must fire on a refused turn")
+        _, text = app._NEXT_STEPS["atan"][0]
+        self.assertIn("Grace Lim", text)
+
+    def test_no_hint_for_an_unrelated_question(self):
+        os.environ["LLM_MODEL"] = "fake"
+        at = self.open()
+        q = "What rate limit applies to the payment gateway API?"
+        at.chat_input[0].set_value(q).run()
+        self.assertFalse(at.exception)
+        # no "Next step" caption should appear
+        self.assertFalse(any("Next step" in c.value for c in at.caption),
+                         [c.value for c in at.caption])
+
+
 class IdleAutoReset(unittest.TestCase):
     """`reset_if_idle` decides when a new visitor inherits a clean shared state."""
 

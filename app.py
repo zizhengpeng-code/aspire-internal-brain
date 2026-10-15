@@ -189,6 +189,11 @@ def history(user_id):
     return st.session_state.setdefault(f"hist::{user_id}", [])
 
 
+def asked_questions(user_id):
+    """The set of questions already submitted by this user in the current session (normalised)."""
+    return st.session_state.setdefault(f"asked::{user_id}", set())
+
+
 def user_info(user_id):
     return authz.directory().get("users", {}).get(user_id, {})
 
@@ -430,6 +435,7 @@ def submit(user_id, question, spinner_text):
         turns(user_id).append(scope_turn(user_id, question))
         st.rerun()
         return
+    asked_questions(user_id).add(question.strip().lower())
     verdict = limits.check(questions_asked())
     if not verdict["allowed"]:
         st.info(verdict["message"])
@@ -453,6 +459,47 @@ def render_examples(user_id, spinner_text, on_compliance_page=False):
     for index, question in enumerate(questions):
         if st.button(question, key=f"example::{user_id}::{index}", width="content"):
             submit(user_id, question, spinner_text)
+
+
+def render_remaining_examples(user_id, spinner_text):
+    """The example questions this user has not yet asked in the current session."""
+    questions = example_questions(user_id)
+    if not questions or user_id in COMPLIANCE_EXAMPLES:
+        return
+    asked = asked_questions(user_id)
+    remaining = [q for q in questions if q.strip().lower() not in asked]
+    if not remaining:
+        return
+    st.caption("Still to try — clicking runs it exactly as if you had typed it:")
+    for index, question in enumerate(remaining):
+        if st.button(question, key=f"example::{user_id}::{index}::remain", width="content"):
+            submit(user_id, question, spinner_text)
+
+
+# One-line hints that chain the five demo scenarios. Pure text — no state change, no button.
+_NEXT_STEPS = {
+    "wlin": [
+        (lambda t: "runbook" in keywords(t["question"]),
+         "Push the 13:00 update on the **Admin** page, then ask this again — the answer changes."),
+    ],
+    "jdoe": [
+        (lambda t: {"root", "cause"} <= set(keywords(t["question"])),
+         "Revoke Jamie from **#payments-incident** on the **Admin** page, then ask "
+         "\"Repeat what you just told me about the root cause.\""),
+    ],
+    "atan": [
+        (lambda t: t.get("refused"),
+         "Sign in as **Grace Lim** and open **Compliance → Alerts**."),
+    ],
+}
+
+
+def render_next_step(turn, user_id):
+    """Show a one-line hint for the presenter after a specific turn."""
+    for check, text in _NEXT_STEPS.get(user_id, []):
+        if check(turn):
+            st.caption(f"**Next step** — {text}")
+            break
 
 
 def budgeted_chat_input(user_id, placeholder, spinner_text):
@@ -535,11 +582,22 @@ def page_chat():
         # Nothing asked yet: say what this is, and give a first question to click.
         with st.chat_message("assistant"):
             st.markdown(WELCOME)
-    if not shown or shown[-1].get("kind") in ("greeting", "scope"):
         if user_id in COMPLIANCE_EXAMPLES:
             st.caption("Your example questions are audit queries — they are on the "
                        "**Compliance → Ask (query_audit)** page.")
         render_examples(user_id, "Searching…")
+    else:
+        last = shown[-1]
+        if last.get("kind") in ("greeting", "scope"):
+            # Greetings and scope questions keep the full suggestion list under them.
+            if user_id in COMPLIANCE_EXAMPLES:
+                st.caption("Your example questions are audit queries — they are on the "
+                           "**Compliance → Ask (query_audit)** page.")
+            render_examples(user_id, "Searching…")
+        else:
+            # After an agent answer: hint about what to do next, then remaining suggestions.
+            render_next_step(last, user_id)
+            render_remaining_examples(user_id, "Searching…")
 
     budgeted_chat_input(user_id, "Ask about the knowledge base…", "Searching…")
 
