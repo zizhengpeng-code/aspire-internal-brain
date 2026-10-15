@@ -15,6 +15,7 @@ import json
 import os
 import shutil
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import authz
@@ -27,6 +28,9 @@ STATE = os.path.join(ROOT, "state")
 UPDATES = os.path.join(ROOT, "data", "updates")
 AUDIT_PATH = os.path.join(ROOT, "logs", "audit.jsonl")
 BACKUP = os.path.join(STATE, "audit_backup.jsonl")
+# When the shared demo state was last changed on purpose. Deliberately *not* in state/:
+# reset() deletes state/, and this note has to outlive the reset it triggers.
+ACTIVITY = os.path.join(ROOT, ".cache", "demo_activity.json")
 
 
 def _backup_audit(audit_path=AUDIT_PATH):
@@ -164,6 +168,62 @@ def reset():
         shutil.copy2(BACKUP, AUDIT_PATH)
     shutil.rmtree(STATE, ignore_errors=True)
     authz.reload()
+
+
+def note_admin_activity(now=None):
+    """Remember when the shared demo state was last changed on purpose.
+
+    Called for every Admin-page action, so a later visitor can tell whether what they are
+    looking at was left behind by someone else. Best-effort: an unwritable ``.cache/``
+    simply means the next visitor sees no note, which reads as "nothing on record".
+    """
+    try:
+        os.makedirs(os.path.dirname(ACTIVITY), exist_ok=True)
+        with open(ACTIVITY, "w", encoding="utf-8") as f:
+            json.dump({"last_admin_action": time.time() if now is None else now}, f)
+    except OSError:
+        pass
+
+
+def last_admin_activity():
+    """Unix timestamp of the last Admin action, or ``None`` if there has not been one."""
+    try:
+        with open(ACTIVITY, encoding="utf-8") as f:
+            return json.load(f).get("last_admin_action")
+    except (OSError, ValueError):
+        return None
+
+
+def reset_if_idle(idle_minutes=15, now=None, audit_path=None):
+    """Give a new visitor a clean state when the last one left it changed and walked away.
+
+    Every visitor mutates the same instance, so a revoke, an update or a tamper left behind
+    by someone else is the next visitor's confusion. A browser session that opens more than
+    ``idle_minutes`` after the last Admin action therefore gets ``reset()``, and the reset
+    is written to the audit log as an admin event — the compliance views then show it like
+    any other state change rather than it happening invisibly.
+
+    Nothing is reset while someone may still be working: inside the idle window the state is
+    left exactly as they left it. On an instance with no Admin action on record there is
+    nothing to clean up either, so the first visitor just establishes the baseline.
+
+    ``audit_path`` defaults to ``AUDIT_PATH`` *at call time*, so pointing the module at
+    another log (as the tests do) is enough to redirect the event.
+    """
+    stamp = time.time() if now is None else now
+    last = last_admin_activity()
+    if last is None:
+        note_admin_activity(stamp)
+        return {"reset": False, "reason": "no Admin action on record yet"}
+    idle = stamp - last
+    if idle < idle_minutes * 60:
+        return {"reset": False, "reason": f"an Admin action {int(idle)}s ago"}
+    reset()
+    AuditLog(audit_path or AUDIT_PATH).append(
+        {"event": "state_reset", "user_id": "admin", "reason": "idle",
+         "idle_minutes": idle_minutes, "idle_seconds": int(idle)})
+    note_admin_activity(stamp)
+    return {"reset": True, "reason": f"no Admin action for {int(idle // 60)} minutes"}
 
 
 def main(argv=None):

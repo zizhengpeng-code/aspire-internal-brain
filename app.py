@@ -16,9 +16,15 @@ Four pages:
 
 Identity is chosen here only to *simulate* SSO; the agent always receives the identity
 through the LangGraph runtime context, never through the model or the tool arguments.
+
+Two things make the instance usable by strangers: a greeting is answered by the UI itself (no
+model call, no audit record, no question spent) and comes with clickable starter questions
+tailored to the signed-in user; and the shared state is reset when a visitor arrives after the
+Admin page has been quiet for a while, so nobody inherits someone else's revoke or tamper.
 """
 import json
 import os
+import re
 import time
 
 import streamlit as st
@@ -56,6 +62,63 @@ DEMO_SCRIPT = [
     "⑤ glim: everything jdoe accessed in confluence:payment-gateway → table; alert list; E21 in the "
     "over-sharing list → Exclude from AI; verify chain → tamper → truncate.",
 ]
+
+WELCOME = (
+    "**Internal Brain** answers questions about LumenPay's internal knowledge — Slack threads, "
+    "Jira tickets, Confluence pages and drive files.\n\n"
+    "It answers as the person signed in on the left, and only from the documents that user can "
+    "read **right now**. Anything else is not merely left out of the reply: it is never "
+    "retrieved in the first place, so the same question can be answered for one colleague and "
+    "refused for another. Switch user in the sidebar and try it."
+)
+
+# Starter questions, one set per demo user: the things *that* person can actually get an
+# answer to, so a first click is never an accidental refusal. Every one of these was run
+# through the real model; Alex Tan's set is the exception, and refuses by design.
+EXAMPLE_QUESTIONS = {
+    "jdoe": [
+        "What's the status of the database migration project and were there any blockers "
+        "raised in Slack last week?",
+        "What rate limit applies to the payment gateway API?",
+        "What does the payments incident thread say about the SDK upgrade?",
+    ],
+    "wlin": [
+        "Show me the latest runbook for the payment service",
+        "What was the root cause of the Oct 13 payments incident?",
+        "What's the replication lag on the ledger backfill?",
+    ],
+    "sho": [
+        "Which documents mention the PSP failover?",
+        "What are the open Jira tickets for the payment gateway?",
+        "What does the Q3 incident report say about credential stuffing?",
+    ],
+    "atan": [
+        "Show me the security risk register.",
+        "What does the Q3 breach report say about the affected service?",
+        "Is there a risk acceptance for legacy TLS on the merchant portal?",
+    ],
+    "glim": [
+        "Show me everything user jdoe accessed in confluence:payment-gateway in the last 30 days",
+        "What has user atan been asking for?",
+        "Which documents were denied to user atan?",
+    ],
+}
+# Where a refusal is the point of the example rather than a defect in it.
+REFUSED_ON_PURPOSE = {
+    "atan": "All three are refused on purpose: Alex Tan's QA contract does not cover the "
+            "security documents, and a hidden document is indistinguishable from a missing one.",
+}
+# Grace's examples are audit queries, so they belong on the Compliance → Ask tab rather than
+# on the chat page, which points her there instead.
+COMPLIANCE_EXAMPLES = {"glim"}
+
+# A greeting is answered by the UI itself — no model call, no audit record, no question spent.
+# Only a *whole* short message counts, so "hi, what's the latest runbook…" still reaches the
+# agent as the real question it is.
+GREETINGS = {"hi", "hi there", "hello", "hello there", "hey", "hey there", "yo", "help",
+             "what can you do", "what can you help with", "who are you", "what is this",
+             "你好", "您好", "嗨", "你能做什么", "你是谁", "这是什么"}
+GREETING_MAX_WORDS = 4
 
 
 # --------------------------------------------------------------------------- helpers
@@ -112,6 +175,7 @@ def run_action(label, fn, reload_sessions=False):
     except Exception as exc:                                   # noqa: BLE001 - surface it in the UI
         result, ok = f"{type(exc).__name__}: {exc}", False
     elapsed = (time.perf_counter() - start) * 1000
+    simulate.note_admin_activity()      # so a later visitor knows the state was left changed
     if reload_sessions:
         for key in list(st.session_state):
             if key.startswith("session::"):
@@ -161,6 +225,32 @@ def ensure_demo_history():
     return seed_demo_history()
 
 
+def first_render_of_a_browser_session():
+    """True on the first run of a new browser session — ``st.session_state`` starts empty."""
+    if st.session_state.get("browser_session_seen"):
+        return False
+    st.session_state["browser_session_seen"] = True
+    return True
+
+
+def auto_reset_if_idle():
+    """Clean up after the last visitor, for a visitor who arrives once everyone has gone.
+
+    The demo state is shared, so a revoke or a tamper left behind by someone else is the next
+    visitor's confusion. ``DEMO_AUTORESET_IDLE_MINUTES`` sets how quiet the Admin page has to
+    have been; ``0`` disables it (the tests do that). The decision itself lives in
+    ``simulate.reset_if_idle``, and the reset is recorded in the audit log as an admin event.
+    """
+    raw = os.environ.get("DEMO_AUTORESET_IDLE_MINUTES", "15")
+    try:
+        minutes = float(raw)
+    except ValueError:
+        minutes = 15.0
+    if minutes <= 0:
+        return {"reset": False, "reason": "disabled by DEMO_AUTORESET_IDLE_MINUTES"}
+    return simulate.reset_if_idle(idle_minutes=minutes)
+
+
 def questions_asked():
     """Questions asked in this browser session, across every signed-in user."""
     return st.session_state.setdefault("questions_asked", 0)
@@ -185,7 +275,69 @@ def ask(user_id, question, spinner_text):
     st.rerun()
 
 
-def budgeted_chat_input(placeholder, spinner_text):
+def is_greeting(text):
+    """True only for a short message that is *nothing but* a greeting.
+
+    Case, spacing and punctuation are ignored, so "Hi!", "  hello  " and "HELLO" all match.
+    Length is the guard that keeps this safe: the whole message has to normalise down to one
+    of the known greetings, so "hi, what's the latest runbook for the payment service?" is
+    still a question and goes to the agent untouched.
+    """
+    cleaned = re.sub(r"[^0-9a-z\u4e00-\u9fff]+", " ", (text or "").lower()).strip()
+    if not cleaned or len(cleaned.split()) > GREETING_MAX_WORDS:
+        return False
+    return cleaned in GREETINGS
+
+
+def example_questions(user_id):
+    """The starter questions shown to this user, or none if they have no set."""
+    return EXAMPLE_QUESTIONS.get(user_id, [])
+
+
+def welcome(user_id):
+    """The greeting turn. Built here, never by the model: no API call, no audit record, no
+    question spent — a visitor must be able to say hello for free."""
+    return {"question": "hi", "answer": WELCOME, "citations": [], "steps": [],
+            "refused": False, "kind": "greeting"}
+
+
+def submit(user_id, question, spinner_text):
+    """Route one submitted message — typed or clicked, the path is identical.
+
+    A greeting is answered by the UI; anything else is budget-checked and then handed to the
+    agent. The example buttons call this, so a clicked question is spent, audited, guarded and
+    counted exactly like a typed one.
+    """
+    if is_greeting(question):
+        turns(user_id).append(welcome(user_id))
+        st.rerun()
+        return
+    verdict = limits.check(questions_asked())
+    if not verdict["allowed"]:
+        st.info(verdict["message"])
+        return
+    ask(user_id, question, spinner_text)
+
+
+def render_examples(user_id, spinner_text, on_compliance_page=False):
+    """Clickable starter questions for the signed-in user.
+
+    Grace's set is made of audit questions, so it is shown on the Compliance → Ask tab and the
+    chat page points her there instead.
+    """
+    questions = example_questions(user_id)
+    if not questions or (user_id in COMPLIANCE_EXAMPLES) != on_compliance_page:
+        return
+    st.caption("Try one of these — clicking runs it exactly as if you had typed it:")
+    note = REFUSED_ON_PURPOSE.get(user_id)
+    if note:
+        st.caption(f"⚠️ {note}")
+    for index, question in enumerate(questions):
+        if st.button(question, key=f"example::{user_id}::{index}", width="content"):
+            submit(user_id, question, spinner_text)
+
+
+def budgeted_chat_input(user_id, placeholder, spinner_text):
     """The chat input, or a polite notice once the spending limit is reached.
 
     The check runs here, before the model is ever called, so an exhausted budget cannot
@@ -197,7 +349,7 @@ def budgeted_chat_input(placeholder, spinner_text):
         return
     question = st.chat_input(placeholder)
     if question:
-        ask(st.session_state.user, question, spinner_text)
+        submit(user_id, question, spinner_text)
 
 
 def render_citations(citation_ids, docs):
@@ -228,6 +380,8 @@ def render_turn(turn, docs):
             st.warning(text)
         else:
             st.markdown(text)
+        if turn.get("kind") == "greeting":
+            return                     # nothing was retrieved, so there are no steps to show
         render_citations(turn.get("citations") or [], docs)
         steps = turn.get("steps") or []
         with st.expander(f"Agent steps ({len(steps)})", expanded=False):
@@ -256,10 +410,20 @@ def page_chat():
     st.caption(f"{info.get('title', '')} · groups: {', '.join(user_groups(user_id))} · "
                "answers are limited to documents you can read, right now")
     docs = authz.documents()
-    for turn in turns(user_id):
+    shown = turns(user_id)
+    for turn in shown:
         render_turn(turn, docs)
+    if not shown:
+        # Nothing asked yet: say what this is, and give a first question to click.
+        with st.chat_message("assistant"):
+            st.markdown(WELCOME)
+    if not shown or shown[-1].get("kind") == "greeting":
+        if user_id in COMPLIANCE_EXAMPLES:
+            st.caption("Your example questions are audit queries — they are on the "
+                       "**Compliance → Ask (query_audit)** page.")
+        render_examples(user_id, "Searching…")
 
-    budgeted_chat_input("Ask about the knowledge base…", "Searching…")
+    budgeted_chat_input(user_id, "Ask about the knowledge base…", "Searching…")
 
 
 def page_admin():
@@ -270,21 +434,21 @@ def page_admin():
     render_last_action()
     left, right = st.columns(2)
     with left:
-        if st.button("Push runbook update (13:00)", use_container_width=True):
+        if st.button("Push runbook update (13:00)", width="stretch"):
             warm_index()          # the index a running system would already have
             run_action("Push runbook update (E06 → rev 8)", lambda: simulate.update("E06"),
                        reload_sessions=True)
-        if st.button("Revoke jdoe from #payments-incident", use_container_width=True):
+        if st.button("Revoke jdoe from #payments-incident", width="stretch"):
             run_action("Revoke jdoe from #payments-incident",
                        lambda: simulate.revoke("jdoe", "#payments-incident"))
-        if st.button("Reset demo state", use_container_width=True):
+        if st.button("Reset demo state", width="stretch"):
             run_action("Reset (drop state/, restore audit)", simulate.reset, reload_sessions=True)
     with right:
         seq = st.number_input("audit record seq to tamper", min_value=1, value=4, step=1)
-        if st.button("Tamper audit record", use_container_width=True):
+        if st.button("Tamper audit record", width="stretch"):
             run_action(f"Tamper audit record #{int(seq)}", lambda: simulate.tamper(int(seq)))
         count = st.number_input("audit records to truncate", min_value=1, value=2, step=1)
-        if st.button("Truncate audit log", use_container_width=True):
+        if st.button("Truncate audit log", width="stretch"):
             run_action(f"Truncate last {int(count)} audit records", lambda: simulate.truncate(int(count)))
     st.divider()
     st.markdown("**Audit log**")
@@ -293,7 +457,7 @@ def page_admin():
     if records:
         st.dataframe([{k: r.get(k) for k in ("seq", "ts", "event", "user_id", "tool",
                                              "returned", "citations", "refused")}
-                      for r in records[-25:]], use_container_width=True)
+                      for r in records[-25:]], width="stretch")
 
 
 def page_compliance():
@@ -320,15 +484,23 @@ def page_compliance():
         if records:
             st.dataframe([{k: r.get(k) for k in ("seq", "ts", "event", "user_id", "question",
                                                  "tool", "returned", "refused")}
-                          for r in records[-100:]], use_container_width=True)
+                          for r in records[-100:]], width="stretch")
 
     with tab_ask:
         st.caption("Natural-language audit questions run through the same agent, using its "
                    "`query_audit` tool (bound only for the compliance officer).")
         docs = authz.documents()
-        for turn in turns(st.session_state.user):
+        shown = turns(st.session_state.user)
+        for turn in shown:
             render_turn(turn, docs)
-        budgeted_chat_input("e.g. Show me everything user jdoe accessed in "
+        if not shown:
+            with st.chat_message("assistant"):
+                st.markdown(WELCOME)
+        if not shown or shown[-1].get("kind") == "greeting":
+            render_examples(st.session_state.user, "Querying the audit log…",
+                            on_compliance_page=True)
+        budgeted_chat_input(st.session_state.user,
+                            "e.g. Show me everything user jdoe accessed in "
                             "confluence:payment-gateway in the last 30 days",
                             "Querying the audit log…")
 
@@ -449,6 +621,11 @@ def sidebar():
         st.title("🔐 Internal Brain")
         st.caption("LumenPay — permission-aware internal assistant (simulated company)")
         st.info(SHARED_STATE_NOTICE, icon="👥")
+        outcome = st.session_state.get("auto_reset") or {}
+        if outcome.get("reset"):
+            st.caption(f"♻️ Shared demo state was reset when you arrived — {outcome['reason']}, "
+                       "so nothing another visitor changed is left over. The reset is in the "
+                       "audit log as a `state_reset` admin event.")
         users = [u for u in authz.directory().get("users", {}) if not u.startswith("persona_")]
         labels = {u: f"{user_info(u).get('name', u)} — {user_info(u).get('title', '')}" for u in users}
         st.session_state.setdefault("user", users[0] if users else None)
@@ -463,7 +640,7 @@ def sidebar():
         with st.expander("Demo script (5 scenarios)"):
             for line in DEMO_SCRIPT:
                 st.markdown(f"- {line}")
-        if st.button("Clear this chat", use_container_width=True):
+        if st.button("Clear this chat", width="stretch"):
             user = st.session_state.user
             st.session_state[f"turns::{user}"] = []
             st.session_state[f"hist::{user}"] = []
@@ -474,6 +651,9 @@ def sidebar():
 def main():
     st.set_page_config(page_title="Internal Brain — LumenPay", page_icon="🔐", layout="wide")
     ensure_demo_history()          # once per instance: seed the audit history if logs/ is empty
+    if first_render_of_a_browser_session():
+        # After the seeding, so the reset event lands in a log that exists.
+        st.session_state.auto_reset = auto_reset_if_idle()
     page = sidebar()
     if st.session_state.get("user") is None:
         st.error("No demo users found in data/directory.json.")

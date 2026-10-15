@@ -44,6 +44,11 @@ def main():
                "--server.port", str(port),
                "--server.address", "0.0.0.0",
                "--server.headless", "true",
+               # Pin the keep-alive. A visitor who reads the page before typing has been
+               # seeing "Please wait…": the WebSocket Streamlit holds open through the
+               # sandbox gateway can go away while the tab sits idle, and a 20s ping is
+               # cheap insurance against an idle timeout we do not control.
+               "--server.websocketPingInterval", "20",
                "--browser.gatherUsageStats", "false"]
     os.execv(sys.executable, command)      # replace this process: the sandbox watches one PID
 
