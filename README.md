@@ -5,6 +5,10 @@ end-to-end prototype of an internal assistant that answers natural-language ques
 four source systems, **only** from documents the signed-in user is allowed to read at that
 moment, cites every factual claim, and keeps a tamper-evident, queryable audit trail.
 
+**Live demo:** <https://a3ee9ede2140429fbad527ccaa385d48.sg2.agentos-app.run> (Tencent Cloud,
+Singapore). It is one shared instance: sign in as any demo user from the sidebar, and press
+**Reset demo state** on the Admin page after trying the Admin actions.
+
 > All companies, people, document ids and numbers in the corpus are invented. Regulatory
 > material is written as internal policy, never as a claim about real law. Every link uses a
 > `.example` domain.
