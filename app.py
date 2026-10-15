@@ -887,15 +887,21 @@ def render_signin_screen():
 
 
 def render_checking_screen(user_id, full=True):
-    """Screen 2 — tick off identity, permissions and audit chain, then welcome."""
+    """Screen 2 — tick off identity, permissions and audit chain, then welcome.
+
+    The permission row shows *this user's* count and nothing else. It used to read
+    "3 of 91 documents", which hands a contractor the size of the corpus and therefore the
+    size of what they are not allowed to see — the one thing the assistant never confirms
+    (``scope_answer`` deliberately shows no total and no count of what was left out). The
+    number here is exactly ``len(authz.list_readable(user))``.
+    """
     info = user_info(user_id)
     name = info.get("name", user_id)
     title = info.get("title", "")
     readable = len(authz.list_readable(user_id))
-    total = len(authz.documents())
     audit_ok = audit().verify_detail()["ok"]
     # Stash the live count so tests can verify it without parsing transient markdown.
-    st.session_state["_login_check_count"] = (readable, total)
+    st.session_state["_login_check_count"] = readable
 
     st.markdown(_LOGIN_CSS, unsafe_allow_html=True)
     st.markdown('<div class="login-title">Checking what you can read</div>',
@@ -915,10 +921,10 @@ def render_checking_screen(user_id, full=True):
         steps = 8
         for i in range(steps + 1):
             n = int(readable * i / steps)
-            s2.markdown(f'<div class="check-row">⏳ Permissions loaded — {n} of {total} '
+            s2.markdown(f'<div class="check-row">⏳ Permissions loaded — you can read {n} '
                         f'documents</div>', unsafe_allow_html=True)
             time.sleep(0.15)
-        s2.markdown(f'<div class="check-row">✅ Permissions loaded — {readable} of {total} '
+        s2.markdown(f'<div class="check-row">✅ Permissions loaded — you can read {readable} '
                     f'documents</div>', unsafe_allow_html=True)
 
         s3.markdown('<div class="check-row">⏳ Audit trail ready</div>',
@@ -936,7 +942,7 @@ def render_checking_screen(user_id, full=True):
         s.markdown('<div class="check-row">⏳ Permissions loaded</div>',
                    unsafe_allow_html=True)
         time.sleep(0.3)
-        s.markdown(f'<div class="check-row">✅ Permissions loaded — {readable} of {total} '
+        s.markdown(f'<div class="check-row">✅ Permissions loaded — you can read {readable} '
                    f'documents</div>', unsafe_allow_html=True)
         time.sleep(0.2)
 

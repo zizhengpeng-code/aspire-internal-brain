@@ -26,6 +26,7 @@ import os
 import sys
 import tempfile
 import time
+import types
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -551,6 +552,87 @@ class IdleAutoResetThroughTheUi(EnvBase):
         self.assertFalse(os.path.exists(self.audit_path), "nothing was reset, so nothing is logged")
 
 
+class _Rerun(Exception):
+    """Raised by the stub's st.rerun() to stop a screen exactly where the app would."""
+
+
+class _StubSlot:
+    def __init__(self, sink):
+        self._sink = sink
+
+    def markdown(self, body, **kwargs):
+        self._sink.append(body)
+
+
+class _StubSt:
+    """The smallest stand-in for `streamlit` that records what a screen renders.
+
+    Used to read the checking screen's own text without a browser: the real screen writes into
+    `st.empty()` slots and then calls `st.rerun()`, so an AppTest run never still has the text
+    to look at.
+    """
+
+    def __init__(self):
+        self.markdowns = []
+        self.htmls = []
+        self.session_state = {}
+        self.components = types.SimpleNamespace(v1=types.SimpleNamespace(html=self._html))
+
+    def _html(self, body, **kwargs):
+        self.htmls.append(body)
+
+    def markdown(self, body, **kwargs):
+        self.markdowns.append(body)
+
+    def empty(self):
+        return _StubSlot(self.markdowns)
+
+    def rerun(self):
+        raise _Rerun()
+
+    def __getattr__(self, name):                     # anything else the screen may touch
+        return lambda *a, **k: None
+
+
+def rendered_screen(app_module, fn, *args, **kwargs):
+    """Run a screen function against the stub, with its sleeps removed. Returns the stub."""
+    stub = _StubSt()
+    saved = (app_module.st, app_module.time.sleep)
+    app_module.st, app_module.time.sleep = stub, lambda _seconds: None
+    try:
+        try:
+            fn(*args, **kwargs)
+        except _Rerun:
+            pass
+    finally:
+        app_module.st, app_module.time.sleep = saved
+    return stub
+
+
+@unittest.skipUnless(app, "streamlit not installed")
+class SignInScreenHidesTheCorpusTotal(unittest.TestCase):
+    """Telling a contractor "3 of 91 documents" reveals that 88 documents exist that they
+    cannot see — exactly what the design refuses to confirm anywhere else."""
+
+    def test_the_screen_shows_only_this_users_count(self):
+        for user in ("jdoe", "atan", "glim"):
+            readable = len(app.authz.list_readable(user))
+            stub = rendered_screen(app, app.render_checking_screen, user, full=True)
+            blob = "\n".join(stub.markdowns)
+            self.assertIn(f"you can read {readable} documents", blob, user)
+            self.assertEqual(stub.session_state["_login_check_count"], readable, user)
+
+    def test_no_corpus_total_appears_anywhere_on_the_screen(self):
+        total = len(app.authz.documents())
+        for user in ("jdoe", "atan", "glim"):
+            for full in (True, False):
+                stub = rendered_screen(app, app.render_checking_screen, user, full=full)
+                blob = "\n".join(stub.markdowns + stub.htmls)
+                self.assertNotIn(f"of {total}", blob, (user, full))
+                self.assertNotIn(f"{total} documents", blob, (user, full))
+
+
+@unittest.skipUnless(AppTest, "streamlit not installed")
 class LoginFlowScreen(unittest.TestCase):
     """Sign-in screen behind the LOGIN_FLOW flag."""
 
@@ -622,7 +704,7 @@ class LoginFlowScreen(unittest.TestCase):
             self.assertTrue(at.session_state.get("login_intro_done"))
 
     def test_login_flow_jdoe_readable_count(self):
-        """After sign-in as jdoe the readable count matches authz.list_readable."""
+        """After sign-in as jdoe the screen shows exactly len(authz.list_readable)."""
         os.environ["LOGIN_FLOW"] = "1"
         with unittest.mock.patch.object(app.time, "sleep", lambda _sec: None):
             at = self.open()
@@ -631,13 +713,11 @@ class LoginFlowScreen(unittest.TestCase):
             self._settle(at)
             import authz
             expected = len(authz.list_readable("jdoe"))
-            total = len(authz.documents())
             self.assertEqual(at.session_state.get("user"), "jdoe")
-            self.assertEqual(at.session_state.get("_login_check_count"),
-                             (expected, total))
+            self.assertEqual(at.session_state.get("_login_check_count"), expected)
 
     def test_login_flow_atan_readable_count(self):
-        """After sign-in as atan the readable count matches authz.list_readable."""
+        """After sign-in as atan the screen shows exactly len(authz.list_readable)."""
         os.environ["LOGIN_FLOW"] = "1"
         with unittest.mock.patch.object(app.time, "sleep", lambda _sec: None):
             at = self.open()
@@ -646,10 +726,8 @@ class LoginFlowScreen(unittest.TestCase):
             self._settle(at)
             import authz
             expected = len(authz.list_readable("atan"))
-            total = len(authz.documents())
             self.assertEqual(at.session_state.get("user"), "atan")
-            self.assertEqual(at.session_state.get("_login_check_count"),
-                             (expected, total))
+            self.assertEqual(at.session_state.get("_login_check_count"), expected)
 
     def test_login_flow_switch_user_triggers_checking(self):
         """Switching user from the sidebar shows the shortened checking screen."""

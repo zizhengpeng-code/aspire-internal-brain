@@ -617,10 +617,13 @@ drive it themselves. Strangers share **one** instance, so five things are handle
   came back once as a full summary, once as a hedged non-answer and once as the plain refusal.
   The summary names only what that user may read: no total, no count of what was left out, no
   title of a document they cannot see, so a hidden document stays indistinguishable from a
-  missing one. A narrow account (Alex Tan can read 3 of the documents) is told outright that the
+  missing one. A narrow account (Alex Tan can read 3 documents) is told outright that the
   refusals it will get are the permission model working, not a fault. The same whole-message rule
   applies, so `what do you know about` is this question while `what do you know about the
-  payments incident` is a real one and reaches the agent.
+  payments incident` is a real one and reaches the agent. Since the assistant never reveals how
+  much it is withholding, the count the sign-in screen shows is the same figure in the same
+  form — *you can read 3 documents*, never *3 of 91*, because "of 91" would hand a contractor
+  the size of the set they cannot see.
 - **First-start demo history.** `logs/` is git-ignored, so a fresh instance has an empty
   audit log — the alert list would be empty and the compliance officer's `query_audit`
   would find nothing. On startup, if `logs/audit.jsonl` is missing, the app runs the
