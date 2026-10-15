@@ -25,7 +25,9 @@ Admin page has been quiet for a while, so nobody inherits someone else's revoke 
 A third is the question a stranger asks *about the assistant* rather than about LumenPay —
 "what can I know in this system?". The UI answers that one too, from the live permission set:
 the counts and the spaces come from the ACL, so the answer is exact rather than guessed, and
-it names only what this user may read.
+it names only what this user may read. A fixed list of phrasings catches the common ones for
+free; when a message does not match it, one short classifier call (``intent.py``) decides
+whether it was really about the assistant or about LumenPay after all.
 
 A fourth is a real sign-in screen: on the hosted demo the visitor chooses a demo account,
 sees a short "Checking what you can read" animation with the live permission count, and only
@@ -42,6 +44,7 @@ import streamlit as st
 
 import authz
 import env
+import intent
 import limits
 import oversharing
 import sanitize
@@ -141,6 +144,8 @@ GREETING_MAX_WORDS = 4
 #
 # Matching is on the *whole* normalised message, so "what do you know about" is this question
 # while "what do you know about the payments incident" is a normal one and goes to the agent.
+# This list is the zero-cost fast path; a phrasing it misses is passed to ``intent.classify``,
+# which is the fallback that catches the same question asked another way.
 SCOPE_QUESTIONS = {
     "what can i know", "what can i know here", "what can i know in this system",
     "what is there to know", "what can i ask", "what can i ask you", "what can i ask you about",
@@ -368,6 +373,18 @@ def is_scope_question(text):
     return " ".join(words) in SCOPE_QUESTIONS
 
 
+def is_about_assistant(text):
+    """A second chance at the question above, for phrasings the fixed list does not carry.
+
+    The list is an exact-match fast path and costs nothing; this is the fallback that runs only
+    when the list misses. One short call labels the message ``ABOUT_ASSISTANT`` (about the
+    assistant itself) or ``KNOWLEDGE`` (about LumenPay). ``intent.classify`` never raises and
+    treats anything but the one label as ``KNOWLEDGE``, so a failure here simply sends the
+    message down the normal agent path.
+    """
+    return intent.classify(text, get_llm()) == intent.ABOUT_ASSISTANT
+
+
 def example_questions(user_id):
     """The starter questions shown to this user, or none if they have no set."""
     return EXAMPLE_QUESTIONS.get(user_id, [])
@@ -436,12 +453,19 @@ def submit(user_id, question, spinner_text):
     A greeting, or a question about the assistant itself, is answered by the UI; anything else
     is budget-checked and then handed to the agent. The example buttons call this, so a clicked
     question is spent, audited, guarded and counted exactly like a typed one.
+
+    The assistant question is matched twice: first against the fixed ``SCOPE_QUESTIONS`` list,
+    which costs nothing, and then — only when that misses — through one short classifier call
+    that catches the same question phrased differently ("what can i do by using this agent").
+    Either way the reply is the deterministic ``scope_answer``; the classifier only decides
+    *which* of the two UI answers to give, and no model-written text is ever shown for it. It
+    runs before the budget check and spends nothing, so a free UI answer stays free.
     """
     if is_greeting(question):
         turns(user_id).append(welcome(question))
         st.rerun()
         return
-    if is_scope_question(question):
+    if is_scope_question(question) or is_about_assistant(question):
         turns(user_id).append(scope_turn(user_id, question))
         st.rerun()
         return

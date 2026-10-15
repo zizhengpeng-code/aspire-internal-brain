@@ -620,7 +620,13 @@ drive it themselves. Strangers share **one** instance, so five things are handle
   missing one. A narrow account (Alex Tan can read 3 documents) is told outright that the
   refusals it will get are the permission model working, not a fault. The same whole-message rule
   applies, so `what do you know about` is this question while `what do you know about the
-  payments incident` is a real one and reaches the agent. Since the assistant never reveals how
+  payments incident` is a real one and reaches the agent. That rule alone was too literal: the
+  fixed list matched the whole message exactly, so the same question phrased differently —
+  `what can i do by using this agent`, refused on the live demo — fell past it and reached the
+  agent. The list is kept as a zero-cost fast path, and when it misses, one short, cheap
+  classifier call (`intent.py`) labels the message `ABOUT_ASSISTANT` or `KNOWLEDGE`. Either way
+  the reply is the deterministic summary above, never model-written text; `KNOWLEDGE` goes to the
+  agent exactly as before. Since the assistant never reveals how
   much it is withholding, the count the sign-in screen shows is the same figure in the same
   form — *you can read 3 documents*, never *3 of 91*, because "of 91" would hand a contractor
   the size of the set they cannot see.
@@ -688,6 +694,19 @@ mmdc -i docs/architecture.mmd -o docs/architecture.svg -b white
   from earlier turns, which costs a little answer quality and buys revocation safety.
 - **No outbound tools at all.** The assistant is less capable than it could be; that is the
   point — it removes the exfiltration leg entirely rather than trying to detect it.
+- **A classifier picks which UI answer to show, not what to say.** A question about the
+  assistant is caught by an exact-match list first (free), and only when that misses by one
+  short, cheap model call that returns one of two labels. The classifier never sees a
+  document, a citation or the permission set — its entire input is the message the visitor
+  typed — so it has nothing to leak, and its output is parsed as one of the two labels, with
+  anything else counting as `KNOWLEDGE`. It cannot change an answer, open a document or touch
+  the audit log; it only chooses between the deterministic scope summary and the normal agent
+  path. The trade-off is one extra model call per question the fixed list does not already
+  recognise, and that a *wrong* label is possible — which costs, at worst, showing a signed-in
+  user their own scope, the set of documents they may already read on request. It can never
+  reveal someone else's documents or a document this user may not see. The action is not
+  counted against the demo's question budget, because it is a routing decision, not a question
+  spent.
 
 ## 7. Residual risks
 

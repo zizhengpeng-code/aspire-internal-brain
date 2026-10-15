@@ -30,6 +30,7 @@ import types
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import intent
 import simulate
 from audit import AuditLog
 try:
@@ -370,6 +371,111 @@ class ScopeQuestionIsFree(RuntimeFilesUntouched, EnvBase):
         self.assertEqual([b.label for b in at.button][:len(expected)], expected)
 
 
+def _scripted_classifier(labels):
+    """A stand-in for ``intent.classify``: the message decides the label. No model call.
+
+    Keys are normalised the same way the lookup is, so the scripted labels are case- and
+    whitespace-insensitive like the real classifier's own input.
+    """
+    normalised = {" ".join(k.lower().split()): v for k, v in labels.items()}
+
+    def classify(question, llm):
+        return normalised.get(" ".join((question or "").lower().split()), intent.KNOWLEDGE)
+    return classify
+
+
+@unittest.skipUnless(app, "streamlit not installed")
+class AssistantQuestionIsCaughtHoweverItIsPhrased(unittest.TestCase):
+    """The live defect: the fixed SCOPE_QUESTIONS list is an exact match, so the same question
+    phrased differently ("what can i do by using this agent") reached the agent and was refused.
+
+    ``is_about_assistant`` is the fallback — one short classifier call, run only when the fixed
+    list misses. These tests drive ``app.submit`` directly with a scripted classifier, so the
+    routing is asserted without an API call and without an AppTest rerun settling the screen.
+    """
+
+    ABOUT = ("what can i do by using this agent", "how do I use this?", "what are you for")
+    KNOWLEDGE = ("what can I do about the payment outage?",
+                 "how do I claim travel expenses?")
+
+    def setUp(self):
+        os.environ["MAX_QUESTIONS_PER_DAY"] = "1000000"     # the day cap must not interfere
+        self.labels = {t: intent.ABOUT_ASSISTANT for t in self.ABOUT}
+        self.labels.update({t: intent.KNOWLEDGE for t in self.KNOWLEDGE})
+        self.saved = app.intent.classify
+        app.intent.classify = _scripted_classifier(self.labels)
+
+    def tearDown(self):
+        app.intent.classify = self.saved
+
+    def _submit(self, question, user="jdoe", ask=None):
+        """Run submit() against the stub. ``ask`` collects the agent-path calls when given."""
+        stub = _StubSt()
+        stub.session_state = _AttrDict({"llm": object(), "user": user})
+        saved = (app.st, app.time.sleep, app.ask)
+        app.st, app.time.sleep = stub, lambda _seconds: None
+        if ask is not None:
+            app.ask = lambda u, q, s: ask.append((u, q))
+        try:
+            try:
+                app.submit(user, question, "Searching…")
+            except _Rerun:
+                pass
+        finally:
+            app.st, app.time.sleep, app.ask = saved
+        return stub
+
+    def test_about_assistant_phrasings_show_the_scope_answer(self):
+        for text in self.ABOUT:
+            stub = self._submit(text)
+            turn = stub.session_state["turns::jdoe"][-1]
+            self.assertEqual(turn["kind"], "scope", text)
+            self.assertFalse(turn["refused"], text)
+            self.assertEqual(turn["steps"], [], text)
+            self.assertEqual(turn["citations"], [], text)
+            # the deterministic answer, not model-written text
+            self.assertEqual(turn["answer"], app.scope_answer("jdoe"), text)
+            self.assertIn("You can read", turn["answer"], text)
+
+    def test_knowledge_phrasings_still_reach_the_agent(self):
+        for text in self.KNOWLEDGE:
+            asked = []
+            stub = self._submit(text, ask=asked)
+            self.assertEqual(asked, [("jdoe", text)], text)
+            self.assertNotIn("turns::jdoe", stub.session_state, text)
+
+    def test_the_fixed_list_is_a_zero_cost_fast_path(self):
+        """An exact match must not pay for a classifier call."""
+        def forbidden(question, llm):
+            raise AssertionError("the classifier ran for an exact-match scope question")
+        app.intent.classify = forbidden
+        stub = self._submit("what can i know in this system?")
+        self.assertEqual(stub.session_state["turns::jdoe"][-1]["kind"], "scope")
+
+    def test_a_misclassification_can_only_show_the_user_their_own_scope(self):
+        """Even a wrong ABOUT_ASSISTANT label shows scope_answer for *this* user, and nothing
+        else — no document they cannot read, no total. That is the worst a mislabel can do."""
+        app.intent.classify = lambda question, llm: intent.ABOUT_ASSISTANT   # mislabel everything
+        stub = self._submit("how do I claim travel expenses?")
+        turn = stub.session_state["turns::jdoe"][-1]
+        self.assertEqual(turn["kind"], "scope")
+        self.assertEqual(turn["answer"], app.scope_answer("jdoe"))
+        docs, readable = app.authz.documents(), set(app.authz.list_readable("jdoe"))
+        for doc_id, doc in docs.items():
+            if doc_id in readable:
+                continue
+            self.assertNotIn(doc_id, turn["answer"])
+            if doc.get("title"):
+                self.assertNotIn(doc["title"], turn["answer"], f"jdoe must not be told of {doc_id}")
+
+    def test_a_greeting_never_pays_for_the_classifier_either(self):
+        def forbidden(question, llm):
+            raise AssertionError("the classifier ran for a greeting")
+        app.intent.classify = forbidden
+        stub = self._submit("hello")
+        self.assertEqual(stub.session_state["turns::jdoe"][-1]["kind"], "greeting")
+
+
 @unittest.skipUnless(AppTest, "streamlit not installed")
 class SuggestionsStayAvailable(RuntimeFilesUntouched, EnvBase):
     """After every answer the remaining example suggestions are shown under the last turn.
@@ -564,6 +670,19 @@ class _StubSlot:
         self._sink.append(body)
 
 
+class _AttrDict(dict):
+    """A dict that also answers attribute reads, like ``st.session_state`` does."""
+
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError as exc:
+            raise AttributeError(name) from exc
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+
 class _StubSt:
     """The smallest stand-in for `streamlit` that records what a screen renders.
 
@@ -575,7 +694,7 @@ class _StubSt:
     def __init__(self):
         self.markdowns = []
         self.htmls = []
-        self.session_state = {}
+        self.session_state = _AttrDict()
         self.components = types.SimpleNamespace(v1=types.SimpleNamespace(html=self._html))
 
     def _html(self, body, **kwargs):
@@ -744,6 +863,22 @@ class LoginFlowScreen(unittest.TestCase):
             self._settle(at)
             self.assertEqual(at.session_state.get("user"), "atan")
             self.assertEqual(at.session_state.get("login_stage"), "app")
+
+
+@unittest.skipUnless(os.environ.get("RUN_REAL_LLM") == "1",
+                     "set RUN_REAL_LLM=1 (with a real LLM model configured) to call the model")
+class IntentWithTheRealModel(unittest.TestCase):
+    """The exact phrasing from the live demo, checked against the real model — one call.
+
+    Skipped by default so the suite never touches the network; run it as
+    ``RUN_REAL_LLM=1 python -m unittest tests.test_app_demo.IntentWithTheRealModel``.
+    """
+
+    def test_the_live_phrasing_is_labelled_about_the_assistant(self):
+        llm = app.LLM()
+        self.assertFalse(llm.is_fake, "RUN_REAL_LLM=1 needs a real LLM_MODEL configured")
+        self.assertEqual(intent.classify("what can i do by using this agent", llm),
+                         intent.ABOUT_ASSISTANT)
 
 
 if __name__ == "__main__":
