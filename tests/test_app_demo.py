@@ -1,6 +1,6 @@
 """App-level checks for the public-demo safety and usability features.
 
-Four things make the app safe to hand to strangers, and all of them are asserted here against
+Five things make the app safe to hand to strangers, and all of them are asserted here against
 the real Streamlit script (headless AppTest, no browser; the one test that asks a question
 pins the scripted `fake` model, so no API call is made):
 
@@ -10,6 +10,9 @@ pins the scripted `fake` model, so no API call is made):
   notice, so no model call happens;
 * a greeting is answered by the UI itself — no model call, no audit record, no question
   spent — and comes with clickable starter questions for the signed-in user;
+* a question *about the assistant* ("what can I know in this system?") is answered by the UI
+  too, from the live permission set, because the model can only guess at it from whatever the
+  retriever happens to return — and on the live demo it sometimes refused instead;
 * the shared state is reset for a visitor who arrives after the Admin page has been quiet,
   and the reset is written to the audit log as an admin event.
 
@@ -247,6 +250,123 @@ class GreetingIsFree(RuntimeFilesUntouched, EnvBase):
         # same question in, same turn out: the button is a shortcut, not a second code path
         self.assertEqual(clicked.session_state["turns::jdoe"],
                          typed.session_state["turns::jdoe"])
+
+
+    def test_the_greeting_turn_records_what_the_visitor_actually_said(self):
+        at = self.open()
+        at.chat_input[0].set_value("你好").run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.session_state["turns::jdoe"][-1]["question"], "你好")
+
+
+@unittest.skipUnless(app, "streamlit not installed")
+class ScopeQuestionIsRecognised(unittest.TestCase):
+    """A question *about the assistant* is matched on the whole message, like a greeting."""
+
+    def test_variants_of_case_whitespace_and_punctuation_are_recognised(self):
+        for text in ("And what can i know in this system?", "What can I know in this system",
+                     "what can i know here", "What can you help me with?",
+                     "  What do I have access to?  ", "What documents can I see?",
+                     "what do you know about", "So, what can I ask you about?",
+                     "how does this work", "我能看到什么", "这个系统里有什么"):
+            self.assertTrue(app.is_scope_question(text), text)
+
+    def test_a_real_question_that_merely_starts_like_one_is_not(self):
+        for text in ("what do you know about the payments incident",
+                     "What documents can I see about the PSP failover?",
+                     "What can you tell me about the ledger backfill?",
+                     "Which documents mention the PSP failover?",
+                     "What's the status of the database migration project?", ""):
+            self.assertFalse(app.is_scope_question(text), text)
+
+    def test_it_does_not_swallow_a_greeting(self):
+        for text in ("hi", "hello", "what can you do", "who are you"):
+            self.assertFalse(app.is_scope_question(text), text)
+
+
+@unittest.skipUnless(app, "streamlit not installed")
+class ScopeAnswerNamesOnlyWhatTheUserCanRead(unittest.TestCase):
+    """The summary is computed from the ACL, so it cannot describe anything else."""
+
+    def test_the_count_matches_the_permission_set(self):
+        docs = app.authz.documents()
+        for user in ("jdoe", "wlin", "sho", "atan", "glim"):
+            readable = [i for i in app.authz.list_readable(user) if i in docs]
+            answer = app.scope_answer(user)
+            self.assertIn(f"**{len(readable)} documents**", answer)
+            self.assertIn(app.user_info(user).get("name", user), answer)
+
+    def test_it_never_names_a_document_the_user_cannot_read(self):
+        docs = app.authz.documents()
+        for user in ("jdoe", "wlin", "sho", "atan", "glim"):
+            readable = set(app.authz.list_readable(user))
+            answer = app.scope_answer(user)
+            for doc_id, doc in docs.items():
+                if doc_id in readable:
+                    continue
+                self.assertNotIn(doc_id, answer)
+                title = doc.get("title")
+                if title:
+                    self.assertNotIn(title, answer, f"{user} must not be told about {doc_id}")
+
+    def test_it_states_no_total_and_no_count_of_what_was_withheld(self):
+        # a hidden document has to stay indistinguishable from a missing one
+        docs = app.authz.documents()
+        for user in ("jdoe", "atan"):
+            readable = set(app.authz.list_readable(user))
+            answer = app.scope_answer(user)
+            self.assertNotIn(f"{len(docs)} documents", answer)
+            self.assertNotIn(f"{len(docs) - len(readable)} documents", answer)
+
+    def test_a_channel_the_user_cannot_read_is_not_named(self):
+        answer = app.scope_answer("atan")
+        self.assertIn("#payments-eng", answer)
+        self.assertNotIn("#payments-incident", answer)
+
+    def test_a_narrow_account_is_told_the_refusals_are_expected(self):
+        self.assertIn("permission model", app.scope_answer("atan"))
+        self.assertNotIn("permission model", app.scope_answer("jdoe"))
+
+
+@unittest.skipUnless(AppTest, "streamlit not installed")
+class ScopeQuestionIsFree(RuntimeFilesUntouched, EnvBase):
+    """The screenshot defect: a natural first question about the system came back refused.
+
+    It was answered by the model, so the result depended on what the retriever returned for it —
+    measured on the live demo, the same question produced a full summary, then a hedged
+    non-answer, then the plain refusal. The UI knows the answer, so it gives it, for free.
+    """
+
+    def test_asking_what_you_can_know_costs_nothing(self):
+        before = self.audit_snapshot()
+        at = self.open()
+        at.chat_input[0].set_value("And what can i know in this system?").run()
+        self.assertFalse(at.exception)
+
+        turn = at.session_state["turns::jdoe"][-1]
+        self.assertEqual(turn["kind"], "scope")
+        self.assertIn("You can read", turn["answer"])
+        self.assertFalse(turn["refused"])
+        self.assertEqual(turn["steps"], [])
+        self.assertEqual(turn["citations"], [])
+        # nothing was spent, and the agent was never built for this turn
+        self.assertEqual(at.session_state.get("questions_asked"), 0)
+        self.assertIsNone(at.session_state.get("hist::jdoe"))
+        self.assertEqual(self.audit_snapshot(), before, "no model call means no audit record")
+
+    def test_it_is_answered_rather_than_refused(self):
+        at = self.open()
+        at.chat_input[0].set_value("what can you help me with?").run()
+        self.assertFalse(at.exception)
+        turn = at.session_state["turns::jdoe"][-1]
+        self.assertFalse(turn["refused"])
+        self.assertNotIn("couldn't find information", turn["answer"])
+
+    def test_the_examples_are_still_offered_after_a_scope_answer(self):
+        at = self.open()
+        at.chat_input[0].set_value("what can I know here").run()
+        expected = app.EXAMPLE_QUESTIONS["jdoe"]
+        self.assertEqual([b.label for b in at.button][:len(expected)], expected)
 
 
 class IdleAutoReset(unittest.TestCase):

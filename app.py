@@ -21,7 +21,13 @@ Two things make the instance usable by strangers: a greeting is answered by the 
 model call, no audit record, no question spent) and comes with clickable starter questions
 tailored to the signed-in user; and the shared state is reset when a visitor arrives after the
 Admin page has been quiet for a while, so nobody inherits someone else's revoke or tamper.
+
+A third is the question a stranger asks *about the assistant* rather than about LumenPay —
+"what can I know in this system?". The UI answers that one too, from the live permission set:
+the counts and the spaces come from the ACL, so the answer is exact rather than guessed, and
+it names only what this user may read.
 """
+import collections
 import json
 import os
 import re
@@ -69,7 +75,9 @@ WELCOME = (
     "It answers as the person signed in on the left, and only from the documents that user can "
     "read **right now**. Anything else is not merely left out of the reply: it is never "
     "retrieved in the first place, so the same question can be answered for one colleague and "
-    "refused for another. Switch user in the sidebar and try it."
+    "refused for another. Switch user in the sidebar and try it.\n\n"
+    "Ask *what can I know in this system?* at any time and it will list exactly what is in scope "
+    "for the user who is signed in."
 )
 
 # Starter questions, one set per demo user: the things *that* person can actually get an
@@ -119,6 +127,39 @@ GREETINGS = {"hi", "hi there", "hello", "hello there", "hey", "hey there", "yo",
              "what can you do", "what can you help with", "who are you", "what is this",
              "你好", "您好", "嗨", "你能做什么", "你是谁", "这是什么"}
 GREETING_MAX_WORDS = 4
+
+# A question about the assistant rather than about LumenPay's knowledge. The model *can* answer
+# these, but only by summarising whatever the retriever happens to return for them — measured on
+# the live demo, the same question came back as a full summary, then as a hedged "a search
+# doesn't surface a document that describes the system's contents", then as the plain refusal,
+# depending on the run. The UI knows the real answer, so it gives it, deterministically.
+#
+# Matching is on the *whole* normalised message, so "what do you know about" is this question
+# while "what do you know about the payments incident" is a normal one and goes to the agent.
+SCOPE_QUESTIONS = {
+    "what can i know", "what can i know here", "what can i know in this system",
+    "what is there to know", "what can i ask", "what can i ask you", "what can i ask you about",
+    "what can you help me with", "what can you help me with in this system",
+    "what do you know", "what do you know about", "what can you tell me",
+    "what can you tell me about", "what can i access", "what do i have access to",
+    "what am i allowed to see", "what can i see", "what data can i see",
+    "what documents can i see", "which documents can i see",
+    "what documents do i have access to", "what information can i see",
+    "what is in scope for me", "what is my scope", "how does this work",
+    "what is this system", "what can i look at",
+    "我能看到什么", "我能知道什么", "我能问什么", "我能查什么", "我能访问什么",
+    "我能看到哪些文档", "这个系统里有什么",
+}
+SCOPE_MAX_WORDS = 8
+# "And what can i know in this system?" is the same question with a connective in front, because
+# it followed the welcome text. Dropped before matching so one entry covers both.
+LEADING_FILLER = {"and", "so", "but", "ok", "okay", "then", "also", "now", "well"}
+
+# How each source's location is named, for the "what you can read" summary.
+SOURCE_LABEL = {"confluence": "Confluence", "jira": "Jira", "slack": "Slack",
+                "gdrive": "Google Drive"}
+LOCATION_KEYS = (("slack", "channel", "channels"), ("jira", "project", "projects"),
+                 ("confluence", "space", "spaces"), ("gdrive", "folder", "folders"))
 
 
 # --------------------------------------------------------------------------- helpers
@@ -275,18 +316,41 @@ def ask(user_id, question, spinner_text):
     st.rerun()
 
 
+def keywords(text):
+    """Lower-case, strip punctuation, and split — so "Hi!", "  hello  " and "HELLO" all match.
+
+    A leading connective is dropped as well, because a question that follows the welcome text
+    tends to arrive as "and what can I know in this system?".
+    """
+    words = re.sub(r"[^0-9a-z\u4e00-\u9fff]+", " ", (text or "").lower()).strip().split()
+    while words and words[0] in LEADING_FILLER:
+        words.pop(0)
+    return words
+
+
 def is_greeting(text):
     """True only for a short message that is *nothing but* a greeting.
 
-    Case, spacing and punctuation are ignored, so "Hi!", "  hello  " and "HELLO" all match.
     Length is the guard that keeps this safe: the whole message has to normalise down to one
     of the known greetings, so "hi, what's the latest runbook for the payment service?" is
     still a question and goes to the agent untouched.
     """
-    cleaned = re.sub(r"[^0-9a-z\u4e00-\u9fff]+", " ", (text or "").lower()).strip()
-    if not cleaned or len(cleaned.split()) > GREETING_MAX_WORDS:
+    words = keywords(text)
+    if not words or len(words) > GREETING_MAX_WORDS:
         return False
-    return cleaned in GREETINGS
+    return " ".join(words) in GREETINGS
+
+
+def is_scope_question(text):
+    """True only for a short message that is *nothing but* a question about the assistant.
+
+    Same whole-message rule as a greeting: "what do you know about" is this question, while
+    "what do you know about the payments incident" is a real one and reaches the agent.
+    """
+    words = keywords(text)
+    if not words or len(words) > SCOPE_MAX_WORDS:
+        return False
+    return " ".join(words) in SCOPE_QUESTIONS
 
 
 def example_questions(user_id):
@@ -294,22 +358,76 @@ def example_questions(user_id):
     return EXAMPLE_QUESTIONS.get(user_id, [])
 
 
-def welcome(user_id):
+def welcome(question):
     """The greeting turn. Built here, never by the model: no API call, no audit record, no
     question spent — a visitor must be able to say hello for free."""
-    return {"question": "hi", "answer": WELCOME, "citations": [], "steps": [],
+    return {"question": question, "answer": WELCOME, "citations": [], "steps": [],
             "refused": False, "kind": "greeting"}
+
+
+def scope_answer(user_id):
+    """What this signed-in user can read, read straight off the live permission set.
+
+    Deliberately not a model call: the counts and the location names are facts about the ACL,
+    and a model asked the same question can only guess at them from whatever the retriever
+    returns — which is how a natural first question ended up as "I couldn't find information
+    you have access to". It also cannot leak, because it is built from ``list_readable`` and
+    nothing else: there is no total, no count of what was left out, and no title of a document
+    the user may not see. A hidden document stays indistinguishable from a missing one.
+    """
+    docs = authz.documents()
+    readable = [i for i in authz.list_readable(user_id) if i in docs]
+    info = user_info(user_id)
+    by_source = collections.Counter(docs[i].get("source", "?") for i in readable)
+    counts = ", ".join(f"{n} {SOURCE_LABEL.get(src, src.title())}"
+                       for src, n in sorted(by_source.items(), key=lambda kv: (-kv[1], kv[0])))
+    where = []
+    for src, key, label in LOCATION_KEYS:
+        names = sorted({(docs[i].get("acl") or {}).get(key) for i in readable
+                        if docs[i].get("source") == src} - {None})
+        if names:
+            where.append(f"- **{SOURCE_LABEL.get(src, src.title())} {label}** — {', '.join(names)}")
+    header = f"**Signed in as {info.get('name', user_id)}** — {info.get('title', '')}"
+    if user_groups(user_id):
+        header += f" · groups: {', '.join(user_groups(user_id))}"
+    parts = [
+        header,
+        f"You can read **{len(readable)} documents** right now: {counts or 'none'}.",
+        "\n".join(where),
+        "Anything outside that set is not merely left out of the reply — it is never retrieved "
+        "for you in the first place. That is why the same question can be answered for one "
+        "colleague and refused for another, and why a document hidden from you looks exactly "
+        "like one that does not exist: the refusal is the same sentence either way.",
+    ]
+    if len(readable) <= 5:
+        parts.append("That is a deliberately narrow set, so most questions will be refused for "
+                     "this account — the refusal is the permission model working, not a fault in "
+                     "the assistant.")
+    parts.append("Ask about anything in that set — a project's status, a runbook step, an "
+                 "incident's root cause, a rate limit, who decided what and when. The buttons "
+                 "below are a place to start, and the sidebar switches user.")
+    return "\n\n".join(p for p in parts if p)
+
+
+def scope_turn(user_id, question):
+    """The turn for a question about the assistant. Like a greeting, it costs nothing."""
+    return {"question": question, "answer": scope_answer(user_id), "citations": [], "steps": [],
+            "refused": False, "kind": "scope"}
 
 
 def submit(user_id, question, spinner_text):
     """Route one submitted message — typed or clicked, the path is identical.
 
-    A greeting is answered by the UI; anything else is budget-checked and then handed to the
-    agent. The example buttons call this, so a clicked question is spent, audited, guarded and
-    counted exactly like a typed one.
+    A greeting, or a question about the assistant itself, is answered by the UI; anything else
+    is budget-checked and then handed to the agent. The example buttons call this, so a clicked
+    question is spent, audited, guarded and counted exactly like a typed one.
     """
     if is_greeting(question):
-        turns(user_id).append(welcome(user_id))
+        turns(user_id).append(welcome(question))
+        st.rerun()
+        return
+    if is_scope_question(question):
+        turns(user_id).append(scope_turn(user_id, question))
         st.rerun()
         return
     verdict = limits.check(questions_asked())
@@ -380,8 +498,8 @@ def render_turn(turn, docs):
             st.warning(text)
         else:
             st.markdown(text)
-        if turn.get("kind") == "greeting":
-            return                     # nothing was retrieved, so there are no steps to show
+        if turn.get("kind") in ("greeting", "scope"):
+            return       # nothing was retrieved, so there are no citations or steps to show
         render_citations(turn.get("citations") or [], docs)
         steps = turn.get("steps") or []
         with st.expander(f"Agent steps ({len(steps)})", expanded=False):
@@ -417,7 +535,7 @@ def page_chat():
         # Nothing asked yet: say what this is, and give a first question to click.
         with st.chat_message("assistant"):
             st.markdown(WELCOME)
-    if not shown or shown[-1].get("kind") == "greeting":
+    if not shown or shown[-1].get("kind") in ("greeting", "scope"):
         if user_id in COMPLIANCE_EXAMPLES:
             st.caption("Your example questions are audit queries — they are on the "
                        "**Compliance → Ask (query_audit)** page.")
@@ -496,7 +614,7 @@ def page_compliance():
         if not shown:
             with st.chat_message("assistant"):
                 st.markdown(WELCOME)
-        if not shown or shown[-1].get("kind") == "greeting":
+        if not shown or shown[-1].get("kind") in ("greeting", "scope"):
             render_examples(st.session_state.user, "Querying the audit log…",
                             on_compliance_page=True)
         budgeted_chat_input(st.session_state.user,

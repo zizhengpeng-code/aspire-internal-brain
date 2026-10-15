@@ -582,7 +582,7 @@ pip install -r requirements.txt
 cp .env.example .env          # then fill in LLM_API_KEY (and EMBED_* for vector retrieval)
 python evaluate.py            # retrieval evaluation (BM25, no API needed)
 python evaluate_agent.py      # agent evaluation, with the ablation sweep
-python -m unittest discover tests     # 149 tests, no external API, no OpenFGA service
+python -m unittest discover tests     # 161 tests, no external API, no OpenFGA service
 
 streamlit run app.py          # the demo UI
 python scripts/capture_scenarios.py   # regenerate docs/scenarios.md
@@ -609,6 +609,18 @@ drive it themselves. Strangers share **one** instance, so five things are handle
   starter question runs exactly the same path as typing it: budget, audit, guard and all. Alex
   Tan's set is refused on purpose, and the page says so, because a hidden document and a missing
   one are indistinguishable by design.
+- **"What can I know in this system?"** The question a stranger asks *about the assistant* is
+  answered by the UI too, from the live permission set: who is signed in, how many documents
+  they can read, and the channels, projects, spaces and folders those documents come from. It is
+  deterministic, and it is deliberately not a model call — the model can only guess at the answer
+  from whatever the retriever returns for that phrasing, and on the live demo the same question
+  came back once as a full summary, once as a hedged non-answer and once as the plain refusal.
+  The summary names only what that user may read: no total, no count of what was left out, no
+  title of a document they cannot see, so a hidden document stays indistinguishable from a
+  missing one. A narrow account (Alex Tan can read 3 of the documents) is told outright that the
+  refusals it will get are the permission model working, not a fault. The same whole-message rule
+  applies, so `what do you know about` is this question while `what do you know about the
+  payments incident` is a real one and reaches the agent.
 - **First-start demo history.** `logs/` is git-ignored, so a fresh instance has an empty
   audit log — the alert list would be empty and the compliance officer's `query_audit`
   would find nothing. On startup, if `logs/audit.jsonl` is missing, the app runs the
@@ -717,7 +729,7 @@ Correspondence only — no framework definitions are reproduced.
 | `app.py` | the Streamlit demo UI |
 | `simulate.py` | demo state changes (content update, revocation, tamper, truncate, reset, index warm-up) |
 | `scripts/capture_scenarios.py` | runs the five demo scenarios end to end and regenerates `docs/scenarios.md` |
-| `tests/` | 149 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI, demo limits — no external API |
+| `tests/` | 161 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI, demo limits — no external API |
 | `docs/` | Mermaid diagram sources and pre-rendered SVGs, generated scenario transcripts, UI screenshots |
 
 ## 10. Submission checklist
