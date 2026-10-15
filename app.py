@@ -39,6 +39,7 @@ import json
 import os
 import re
 import time
+from html import escape as html_escape
 
 import streamlit as st
 
@@ -829,25 +830,264 @@ def page_roi():
 # Shown on the hosted demo (LOGIN_FLOW=1). A two-screen sign-in: pick an account, watch the
 # permission check tick off, then enter the app. Switching user later shows only the check,
 # shortened. The flag is off by default so local runs and the test suite need no change.
+#
+# Screen 2 is one HTML/CSS/JS block rather than a stack of native widgets, because native
+# Streamlit widgets cannot animate: the old version could only swap a line of text every few
+# hundred milliseconds. The block reproduces the opening of the project's own film
+# (../video/src/scenes/OpeningApp.tsx, rendered as ../video/out/opening-v6b.mp4): the card
+# fades and slides in, each tick is drawn as a stroke, the readable count runs from zero to
+# the real number with an ease-out, and then "Welcome, <first name>" arrives with the name on
+# a mint highlight. Timings, colours (#131313 ink, #FFFFFF paper, #F2F7F4 mist, #BEFFCF mint,
+# #E4E7E5 line) and sizes follow the film. The live values — name, title, the readable count
+# and whether the audit chain verifies — are passed in from Python, and nothing else is: there
+# is no total anywhere in the block.
+
+# How long each variant of the checking screen animates for, before the app moves on. Matches
+# the last step in `_CHECKING_JS`'s timeline plus a moment to read the welcome.
+CHECKING_SECONDS = {"full": 3.1, "short": 1.6}
+CHECKING_HEIGHT = {"full": 520, "short": 320}
 
 _LOGIN_CSS = """
 <style>
-  .login-title { color: #131313; font-size: 1.7rem; font-weight: 600; margin-bottom: 0.2rem; }
-  .login-subtitle { color: #555; font-size: 0.95rem; margin-bottom: 1.2rem; }
-  .account-card-btn button {
-    background: #FFFFFF !important; color: #131313 !important;
-    border: 1.5px solid #E3E5E8 !important; border-radius: 14px !important;
-    padding: 14px 18px !important; text-align: left !important; font-weight: 500 !important;
-    width: 100% !important;
-  }
-  .account-card-btn button:hover { border-color: #131313 !important; }
-  .continue-btn button {
-    background: #131313 !important; color: #FFFFFF !important;
-    border-radius: 10px !important; font-weight: 500 !important;
-  }
+  .login-title { color: #131313; font-size: 1.7rem; font-weight: 700; letter-spacing: -0.01em;
+                 margin-bottom: 0.2rem; text-align: center; }
+  .login-subtitle { color: #555; font-size: 0.95rem; margin-bottom: 1.2rem; text-align: center; }
   .check-row { font-size: 1.05rem; margin: 0.35rem 0; }
+
+  /* Screen 1: one bordered list of accounts, a row turns mint with a tick when selected. */
+  div.st-key-account_list {
+    max-width: 660px; margin: 0 auto; padding: 0 !important;
+    border: 1px solid #E4E7E5; border-radius: 18px; overflow: hidden;
+    background: #FFFFFF;
+  }
+  div.st-key-account_list > div { gap: 0 !important; }
+  div.st-key-account_list .stButton { width: 100%; }
+  div.st-key-account_list .stButton > button {
+    width: 100%; min-height: 84px; border: none; border-radius: 0; box-shadow: none;
+    background: #FFFFFF; color: #131313;
+    padding: 18px 26px !important; text-align: left;
+    display: flex; align-items: center; justify-content: flex-start;
+    font-size: 1.05rem; font-weight: 600;
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+  div.st-key-account_list .stButton > button p {
+    font-size: 1.05rem; font-weight: 600; text-align: left !important; margin: 0;
+  }
+  div.st-key-account_list .stButton > button > div {
+    flex: 1; justify-content: flex-start !important;
+  }
+  div.st-key-account_list .stButton > button:hover { background: #F2F7F4; color: #131313; }
+  .acct-divider { height: 1px; background: #E4E7E5; margin: 0; }
+
+  div.st-key-continue_btn .stButton > button {
+    min-height: 62px; border: none; border-radius: 14px;
+    background: #131313; color: #FFFFFF; font-size: 1.05rem; font-weight: 600;
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+  div.st-key-continue_btn .stButton > button:hover { background: #BEFFCF; color: #131313; }
+  div.st-key-continue_btn .stButton > button p { font-weight: 600; }
 </style>
 """
+
+# Appended *inside* the <style> block above (not after it — appended CSS outside the tag would
+# be rendered as visible text) when a row is selected: the row turns mint and a tick is pushed
+# to its right edge, exactly as in the film.
+_SELECTED_ROW_CSS = """
+  div.st-key-account___UID__, div.st-key-account___UID__ .stButton > button {
+    background: #BEFFCF !important;
+  }
+  div.st-key-account___UID__ .stButton > button:hover { background: #BEFFCF !important; }
+  div.st-key-account___UID__ .stButton > button::after {
+    content: "\\2713"; margin-left: auto; padding-left: 16px;
+    color: #131313; font-weight: 700; font-size: 1.15rem; line-height: 1;
+  }
+"""
+
+# The animated checking screen. `%` is not used for substitution — CSS percentages would fight
+# it — so the live values fill unique __TOKENS__ instead, and nothing the visitor typed is ever
+# interpolated (only the directory's own name/title, the count and a boolean).
+_CHECKING_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --ink:#131313; --paper:#FFFFFF; --mist:#F2F7F4; --mint:#BEFFCF;
+          --line:#E4E7E5; --soft:rgba(19,19,19,0.55); }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:transparent; }
+  body { color:var(--ink);
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         -webkit-font-smoothing:antialiased; }
+  .stage { padding: 6px 2px 14px; }
+
+  .head { text-align:center; font-weight:800; font-size:1.85rem; letter-spacing:-0.02em;
+          opacity:0; transform:translateY(12px);
+          transition:opacity .5s ease, transform .5s cubic-bezier(.65,0,.35,1); }
+  .head.in { opacity:1; transform:none; }
+
+  .card { width:100%; max-width:660px; margin:26px auto 0; background:var(--paper);
+          border:1px solid var(--line); border-radius:18px; padding:0 30px;
+          box-shadow:0 22px 60px rgba(19,19,19,0.06);
+          opacity:0; transform:translateY(18px);
+          transition:opacity .55s ease, transform .55s cubic-bezier(.65,0,.35,1); }
+  .card.in { opacity:1; transform:none; }
+
+  .row { display:flex; align-items:center; gap:22px; min-height:102px;
+         border-top:1px solid var(--line);
+         opacity:0; transform:translateY(10px);
+         transition:opacity .45s ease, transform .45s cubic-bezier(.65,0,.35,1); }
+  .row.first { border-top:none; }
+  .row.in { opacity:1; transform:none; }
+
+  .mark { flex:0 0 40px; width:40px; height:40px; border-radius:20px;
+          border:2px solid var(--line); display:flex; align-items:center; justify-content:center;
+          transition:background-color .22s ease, border-color .22s ease; }
+  .mark svg { width:20px; height:20px; display:block; }
+  .mark .tick, .mark .bang { fill:none; stroke-linecap:round; stroke-linejoin:round;
+                             stroke-dasharray:26; stroke-dashoffset:26; }
+  .mark .tick { stroke:var(--ink); stroke-width:3; }
+  .mark .bang { stroke:#C0392B; stroke-width:3; }
+  .row.done .mark { background:var(--mint); border-color:var(--ink); }
+  .row.done .mark .tick { animation: draw .42s cubic-bezier(.65,0,.35,1) both; }
+  .row.failed .mark { background:#FFE6E3; border-color:#C0392B; }
+  .row.failed .mark .tick { display:none; }
+  .row.failed .mark .bang { animation: draw .42s cubic-bezier(.65,0,.35,1) both; }
+
+  .label { font-size:1.15rem; font-weight:600; }
+  .detail { font-size:0.98rem; color:var(--soft); margin-top:3px; }
+  .row.failed .detail { color:#C0392B; }
+  .count { color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums; }
+
+  .welcome { text-align:center; margin-top:30px; font-weight:800; font-size:2.5rem;
+             letter-spacing:-0.03em; opacity:0; transform:translateY(14px);
+             transition:opacity .5s ease, transform .5s cubic-bezier(.65,0,.35,1); }
+  .welcome.in { opacity:1; transform:none; }
+  .hl { background-image:linear-gradient(var(--mint),var(--mint));
+        background-repeat:no-repeat; background-position:0 55%; background-size:0% 86%;
+        border-radius:12px; padding:0 14px;
+        transition:background-size .5s cubic-bezier(.65,0,.35,1) .08s; }
+  .welcome.in .hl { background-size:100% 86%; }
+
+  @keyframes draw { to { stroke-dashoffset:0; } }
+
+  /* Reduced motion: the final state, at once. */
+  @media (prefers-reduced-motion: reduce) {
+    .head, .card, .row, .welcome, .hl { transition:none !important; }
+    .head, .card, .row.in, .welcome.in { opacity:1 !important; transform:none !important; }
+    .row.done .mark .tick, .row.failed .mark .bang {
+      animation:none !important; stroke-dashoffset:0 !important; }
+    .welcome.in .hl { background-size:100% 86% !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="head">Checking what you can read</div>
+    <div class="card" id="card">
+__ROWS__
+    </div>
+    <div class="welcome" id="welcome">Welcome, <span class="hl">__FIRST__</span></div>
+  </div>
+<script>
+(function () {
+  var FULL = "__MODE__" === "full";
+  var TARGET = __COUNT__;
+  var AUDIT_OK = __AUDIT_OK__;
+  var counter = document.querySelector(".count");
+  var welcome = document.getElementById("welcome");
+  var byId = function (id) { return document.getElementById(id); };
+  var add = function (el, cls) { if (el) { el.classList.add(cls); } };
+  var setCount = function (n) { if (counter) { counter.textContent = String(n); } };
+  var R = { identity: byId("row-identity"), permissions: byId("row-permissions"),
+            audit: byId("row-audit") };
+
+  function animateCount() {
+    var span = FULL ? 1000 : 520;
+    var start = null;
+    function frame(ts) {
+      if (start === null) { start = ts; }
+      var p = Math.min(1, (ts - start) / span);
+      var eased = 1 - Math.pow(1 - p, 3);        /* ease-out cubic */
+      setCount(Math.round(eased * TARGET));
+      if (p < 1) { requestAnimationFrame(frame); } else { setCount(TARGET); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  var reduced = window.matchMedia &&
+                window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduced) {
+    add(document.querySelector(".head"), "in");
+    add(byId("card"), "in");
+    Object.keys(R).forEach(function (k) { add(R[k], "in"); });
+    add(R.identity, "done");
+    add(R.permissions, "done");
+    add(R.audit, AUDIT_OK ? "done" : "failed");
+    setCount(TARGET);
+    add(welcome, "in");
+    return;
+  }
+
+  var schedule = FULL ? [
+    [60,   function () { add(document.querySelector(".head"), "in"); }],
+    [220,  function () { add(byId("card"), "in"); }],
+    [340,  function () { add(R.identity, "in"); }],
+    [720,  function () { add(R.identity, "done"); }],
+    [860,  function () { add(R.permissions, "in"); }],
+    [1000, animateCount],
+    [2040, function () { add(R.permissions, "done"); }],
+    [1500, function () { add(R.audit, "in"); }],
+    [1900, function () { add(R.audit, AUDIT_OK ? "done" : "failed"); }],
+    [2350, function () { add(welcome, "in"); }]
+  ] : [
+    [40,   function () { add(document.querySelector(".head"), "in"); }],
+    [140,  function () { add(byId("card"), "in"); }],
+    [260,  function () { add(R.permissions, "in"); }],
+    [380,  animateCount],
+    [900,  function () { add(R.permissions, "done"); }],
+    [1150, function () { add(welcome, "in"); }]
+  ];
+  schedule.forEach(function (step) { setTimeout(step[1], step[0]); });
+})();
+</script>
+</body>
+</html>
+"""
+
+_CHECK_ROW = """
+      <div class="row__FIRST__" id="row-__KEY__">
+        <div class="mark">
+          <svg viewBox="0 0 24 24">
+            <path class="tick" d="M5 12.5l4.5 4.5L19 7.5"></path>
+            <path class="bang" d="M12 5.5v9.5"></path>
+            <circle class="bang" cx="12" cy="18.5" r="0.1"></circle>
+          </svg>
+        </div>
+        <div>
+          <div class="label">__LABEL__</div>
+          <div class="detail">__DETAIL__</div>
+        </div>
+      </div>"""
+
+
+def _check_rows(name, title, readable, audit_ok, full):
+    """The rows of the checking screen, as (key, label, detail) triples.
+
+    The permission detail is the *only* place the count appears, and it is this user's count:
+    ``you can read <N> documents``. There is no total in the block, on purpose — see
+    ``render_checking_screen``.
+    """
+    count = (f'you can read <span class="count" data-count="{readable}">0</span> documents')
+    if not full:
+        return [("permissions", "Permissions loaded", count)]
+    audit_detail = ("Every answer is logged and signed" if audit_ok
+                    else "Verification failed — see Compliance → Chain integrity")
+    return [
+        ("identity", "Identity confirmed", f"{html_escape(name)}, {html_escape(title)}"),
+        ("permissions", "Permissions loaded", count),
+        ("audit", "Audit trail ready", audit_detail),
+    ]
 
 
 def initials(name):
@@ -862,12 +1102,16 @@ def _login_users():
 
 
 def render_signin_screen():
-    """Screen 1 — choose a demo account."""
+    """Screen 1 — choose a demo account, as one list of rows.
+
+    Native widgets, styled with injected CSS to match the film's reference: one bordered list,
+    a row that turns mint with a tick when selected, and a black rounded "Continue as <name>"
+    button below it.
+    """
     choice = st.session_state.get("login_choice")
     css = _LOGIN_CSS
     if choice:
-        css += (f'\ndiv.stVerticalBlock.st-key-account_{choice} '
-                f'{{ background: #BEFFCF !important; border-color: #BEFFCF !important; }}')
+        css = css.replace("</style>", _SELECTED_ROW_CSS.replace("__UID__", choice) + "</style>")
     st.markdown(css, unsafe_allow_html=True)
 
     st.markdown('<div class="login-title">Sign in to Internal Brain</div>',
@@ -877,37 +1121,29 @@ def render_signin_screen():
                 'for another.</div>', unsafe_allow_html=True)
 
     users = _login_users()
-    cols = st.columns(2)
-    for i, uid in enumerate(users):
-        info = user_info(uid)
-        name = info.get("name", uid)
-        title = info.get("title", "")
-        av = initials(name)
-        with cols[i % 2]:
-            with st.container(key=f"account_{uid}", border=True):
-                c1, c2 = st.columns([1, 4])
-                with c1:
-                    st.markdown(
-                        f'<div style="width:40px;height:40px;border-radius:50%;'
-                        f'background:#131313;color:#fff;display:flex;'
-                        f'align-items:center;justify-content:center;'
-                        f'font-weight:600;font-size:0.9rem;">{av}</div>',
-                        unsafe_allow_html=True)
-                with c2:
-                    st.markdown(f"**{name}**  \n{title}")
-                if st.button("Select", key=f"pick_{uid}", width="stretch"):
+    with st.container(key="account_list"):
+        for i, uid in enumerate(users):
+            info = user_info(uid)
+            name = info.get("name", uid)
+            title = info.get("title", "")
+            if i:
+                st.markdown('<div class="acct-divider"></div>', unsafe_allow_html=True)
+            with st.container(key=f"account_{uid}"):
+                if st.button(f"{initials(name)}  ·  {name} — {title}", key=f"pick_{uid}",
+                             width="stretch"):
                     st.session_state["login_choice"] = uid
                     st.rerun()
 
     if choice:
         name = user_info(choice).get("name", choice)
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button(f"Continue as {name}", key="login_continue", width="stretch"):
-            st.session_state["user"] = choice
-            st.session_state["login_stage"] = "checking"
-            st.session_state["login_full"] = True
-            st.session_state["login_choice"] = None
-            st.rerun()
+        st.markdown('<div style="height:22px"></div>', unsafe_allow_html=True)
+        with st.container(key="continue_btn"):
+            if st.button(f"Continue as {name}", key="login_continue", width="stretch"):
+                st.session_state["user"] = choice
+                st.session_state["login_stage"] = "checking"
+                st.session_state["login_full"] = True
+                st.session_state["login_choice"] = None
+                st.rerun()
 
 
 def render_checking_screen(user_id, full=True):
@@ -918,70 +1154,57 @@ def render_checking_screen(user_id, full=True):
     size of what they are not allowed to see — the one thing the assistant never confirms
     (``scope_answer`` deliberately shows no total and no count of what was left out). The
     number here is exactly ``len(authz.list_readable(user))``.
+
+    The whole screen is one HTML/CSS/JS block, because native Streamlit widgets cannot animate
+    (the old version could only swap a line of text every few hundred milliseconds). Python
+    hands the block the live values it may show — name, title, the readable count, whether the
+    audit chain verifies — and nothing else: no total, no withdrawn count. Then it waits out
+    the animation and reruns into the app.
     """
     info = user_info(user_id)
     name = info.get("name", user_id)
     title = info.get("title", "")
     readable = len(authz.list_readable(user_id))
     audit_ok = audit().verify_detail()["ok"]
-    # Stash the live count so tests can verify it without parsing transient markdown.
+    # Stash the live count so tests can verify it without parsing the component's markup.
     st.session_state["_login_check_count"] = readable
 
-    st.markdown(_LOGIN_CSS, unsafe_allow_html=True)
-    st.markdown('<div class="login-title">Checking what you can read</div>',
-                unsafe_allow_html=True)
+    mode = "full" if full else "short"
+    rows = [_CHECK_ROW.replace("__FIRST__", " first" if i == 0 else "")
+                        .replace("__KEY__", key)
+                        .replace("__LABEL__", label)
+                        .replace("__DETAIL__", detail)
+            for i, (key, label, detail) in enumerate(_check_rows(name, title, readable, audit_ok,
+                                                                 full))]
+    body = (_CHECKING_HTML
+            .replace("__ROWS__", "".join(rows))
+            .replace("__FIRST__", name.split()[0] if name.split() else name)
+            .replace("__MODE__", mode)
+            .replace("__COUNT__", str(readable))
+            .replace("__AUDIT_OK__", "true" if audit_ok else "false"))
+    st.components.v1.html(body, height=CHECKING_HEIGHT[mode], scrolling=False)
 
-    if full:
-        s1 = st.empty()
-        s2 = st.empty()
-        s3 = st.empty()
+    # Blank the sign-in screen's element slots *now*, before the wait: Streamlit keeps the
+    # previous run's elements on the page until the run ends, and this run ends three seconds
+    # from here. Without this the sign-in list sat greyed out underneath the whole animation.
+    _clear_trailing_elements()
 
-        s1.markdown('<div class="check-row">⏳ Identity confirmed</div>',
-                    unsafe_allow_html=True)
-        time.sleep(0.5)
-        s1.markdown(f'<div class="check-row">✅ Identity confirmed — {name}, {title}</div>',
-                    unsafe_allow_html=True)
-
-        steps = 8
-        for i in range(steps + 1):
-            n = int(readable * i / steps)
-            s2.markdown(f'<div class="check-row">⏳ Permissions loaded — you can read {n} '
-                        f'documents</div>', unsafe_allow_html=True)
-            time.sleep(0.15)
-        s2.markdown(f'<div class="check-row">✅ Permissions loaded — you can read {readable} '
-                    f'documents</div>', unsafe_allow_html=True)
-
-        s3.markdown('<div class="check-row">⏳ Audit trail ready</div>',
-                    unsafe_allow_html=True)
-        time.sleep(0.4)
-        if audit_ok:
-            s3.markdown('<div class="check-row">✅ Audit trail ready</div>',
-                        unsafe_allow_html=True)
-        else:
-            s3.markdown('<div class="check-row">⚠️ Audit trail ready — verification failed</div>',
-                        unsafe_allow_html=True)
-        time.sleep(0.3)
-    else:
-        s = st.empty()
-        s.markdown('<div class="check-row">⏳ Permissions loaded</div>',
-                   unsafe_allow_html=True)
-        time.sleep(0.3)
-        s.markdown(f'<div class="check-row">✅ Permissions loaded — you can read {readable} '
-                   f'documents</div>', unsafe_allow_html=True)
-        time.sleep(0.2)
-
-    st.markdown(f'<div class="login-title" style="margin-top:1rem;">Welcome, '
-                f'{name.split()[0]}</div>', unsafe_allow_html=True)
-    time.sleep(0.6)
+    time.sleep(CHECKING_SECONDS[mode])
 
     st.session_state["login_stage"] = "app"
     st.session_state["login_intro_done"] = True
     st.session_state["login_last_user"] = user_id
-    st.rerun()
+    # The caller reruns — see handle_login_flow.
 
 
 def handle_login_flow():
-    """Return True when a login screen was drawn (the normal app must not render underneath)."""
+    """Return True when a login screen was drawn (the normal app must not render underneath).
+
+    The checking screen blanks the sign-in screen's element slots before it hands over, because
+    Streamlit keeps the previous run's elements on the page until the run *ends* — and this run
+    ends three seconds later, after the animation. Without it the sign-in list sat greyed out
+    underneath the animation for its whole duration.
+    """
     stage = st.session_state.get("login_stage")
     if stage == "checking":
         user_id = st.session_state.get("user")
@@ -990,6 +1213,7 @@ def handle_login_flow():
             st.rerun()
             return True
         render_checking_screen(user_id, full=st.session_state.get("login_full", True))
+        st.rerun()
         return True
     if stage == "app":
         return False
@@ -998,6 +1222,17 @@ def handle_login_flow():
         return False
     render_signin_screen()
     return True
+
+
+def _clear_trailing_elements(count=16):
+    """Blank the element slots the previous screen filled.
+
+    Streamlit matches elements by position and keeps the previous run's leftovers on the page
+    until the run ends. The sign-in screen is a handful of elements, so a run of empty
+    placeholders overwrites those slots and leaves only the animated block on the page.
+    """
+    for _ in range(count):
+        st.empty()
 
 
 # ------------------------------------------------------------------------------ shell

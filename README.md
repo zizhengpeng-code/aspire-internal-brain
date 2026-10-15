@@ -598,7 +598,7 @@ the scripted models and stamp every report with the model name.
 The app is deployed as a public link — a Tencent Cloud sandbox behind a gateway, started by
 `start.py` (which pins `--server.websocketPingInterval 20`, because a tab that sits idle long
 enough for the gateway to drop its WebSocket comes back as "Please wait…") — so the judges can
-drive it themselves. Strangers share **one** instance, so five things are handled explicitly:
+drive it themselves. Strangers share **one** instance, so seven things are handled explicitly:
 
 - **A welcome, and a way in.** The chat page opens with a short English introduction: what the
   assistant answers from, and that the answer is scoped to the person signed in. Under it are
@@ -630,6 +630,19 @@ drive it themselves. Strangers share **one** instance, so five things are handle
   much it is withholding, the count the sign-in screen shows is the same figure in the same
   form — *you can read 3 documents*, never *3 of 91*, because "of 91" would hand a contractor
   the size of the set they cannot see.
+- **A sign-in that shows the permission model before the first question.** On the hosted demo
+  (`LOGIN_FLOW=1`) the visitor picks a demo account from one list, and the app then plays a
+  short "Checking what you can read" screen — identity, this user's own readable count, and
+  whether the audit chain verifies — before the app appears. That screen is one HTML/CSS/JS
+  block rather than a stack of native widgets, because native Streamlit widgets cannot animate:
+  the old version could only swap a line of text every few hundred milliseconds. The card fades
+  and slides in, each tick is drawn as a stroke, the count runs from zero to the real number
+  with an ease-out, and then "Welcome, \<first name\>" arrives with the name on the same mint
+  highlight the project's film uses. Timings, colours and sizes follow that film
+  (`video/src/scenes/OpeningApp.tsx`); the whole thing takes about three seconds, and
+  `prefers-reduced-motion` gets the final state at once. Python passes the block the live values
+  — name, title, the readable count, the audit result — and nothing else: no total, exactly as
+  above. If the chain does not verify, that row shows a failure state instead of a tick.
 - **First-start demo history.** `logs/` is git-ignored, so a fresh instance has an empty
   audit log — the alert list would be empty and the compliance officer's `query_audit`
   would find nothing. On startup, if `logs/audit.jsonl` is missing, the app runs the
@@ -707,6 +720,14 @@ mmdc -i docs/architecture.mmd -o docs/architecture.svg -b white
   reveal someone else's documents or a document this user may not see. The action is not
   counted against the demo's question budget, because it is a routing decision, not a question
   spent.
+- **A deliberately lazy run in the sign-in flow.** The animated check screen is one HTML/CSS/JS
+  block, and Python waits out its duration before rerunning into the app, because the browser
+  cannot tell Streamlit the animation has finished — `st.components.v1.html` is a static block
+  with no callback. The cost is one slow script run per sign-in, and the previous screen's
+  element slots have to be blanked by hand (Streamlit keeps the last run's elements on the page
+  until the run ends, which would leave the sign-in list dimmed under the animation). It buys a
+  first impression that matches the project's own film instead of a text swap, and it sits
+  behind `LOGIN_FLOW`, so tests and local runs never pay for it.
 
 ## 7. Residual risks
 

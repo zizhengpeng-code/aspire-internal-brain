@@ -737,9 +737,40 @@ class SignInScreenHidesTheCorpusTotal(unittest.TestCase):
         for user in ("jdoe", "atan", "glim"):
             readable = len(app.authz.list_readable(user))
             stub = rendered_screen(app, app.render_checking_screen, user, full=True)
-            blob = "\n".join(stub.markdowns)
-            self.assertIn(f"you can read {readable} documents", blob, user)
+            blob = "\n".join(stub.markdowns + stub.htmls)
+            # the count the animation runs to is this user's own number
+            self.assertIn(f'data-count="{readable}"', blob, user)
+            self.assertIn("you can read", blob, user)
+            self.assertIn("documents", blob, user)
             self.assertEqual(stub.session_state["_login_check_count"], readable, user)
+
+    def test_the_component_carries_the_live_values(self):
+        """The block is handed the name, the title and the audit result — and no total."""
+        for full in (True, False):
+            stub = rendered_screen(app, app.render_checking_screen, "atan", full=full)
+            blob = "\n".join(stub.htmls)
+            self.assertIn("Checking what you can read", blob)
+            self.assertIn(f'data-count="{len(app.authz.list_readable("atan"))}"', blob)
+            self.assertIn(f'"{("full" if full else "short")}"', blob, full)
+
+    def test_the_audit_row_can_show_a_failure_instead_of_a_tick(self):
+        """A failed verification renders a failure state instead of a tick — the one row that
+        can disagree with the film. Both branches are forced, so the test does not depend on
+        whatever state the instance's own audit log happens to be in."""
+        saved = app.audit
+        try:
+            for ok in (True, False):
+                app.audit = lambda ok=ok: types.SimpleNamespace(
+                    verify_detail=lambda: {"ok": ok})
+                blob = "\n".join(rendered_screen(app, app.render_checking_screen, "jdoe").htmls)
+                self.assertIn(f"AUDIT_OK = {'true' if ok else 'false'};", blob)
+                if ok:
+                    self.assertIn("Every answer is logged and signed", blob)
+                    self.assertNotIn("Verification failed", blob)
+                else:
+                    self.assertIn("Verification failed", blob)
+        finally:
+            app.audit = saved
 
     def test_no_corpus_total_appears_anywhere_on_the_screen(self):
         total = len(app.authz.documents())
