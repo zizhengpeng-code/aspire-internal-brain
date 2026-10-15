@@ -582,7 +582,7 @@ pip install -r requirements.txt
 cp .env.example .env          # then fill in LLM_API_KEY (and EMBED_* for vector retrieval)
 python evaluate.py            # retrieval evaluation (BM25, no API needed)
 python evaluate_agent.py      # agent evaluation, with the ablation sweep
-python -m unittest discover tests     # 161 tests, no external API, no OpenFGA service
+python -m unittest discover tests     # 176 tests, no external API, no OpenFGA service
 
 streamlit run app.py          # the demo UI
 python scripts/capture_scenarios.py   # regenerate docs/scenarios.md
@@ -729,7 +729,7 @@ Correspondence only — no framework definitions are reproduced.
 | `app.py` | the Streamlit demo UI |
 | `simulate.py` | demo state changes (content update, revocation, tamper, truncate, reset, index warm-up) |
 | `scripts/capture_scenarios.py` | runs the five demo scenarios end to end and regenerates `docs/scenarios.md` |
-| `tests/` | 161 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI, demo limits — no external API |
+| `tests/` | 176 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI, demo limits — no external API |
 | `docs/` | Mermaid diagram sources and pre-rendered SVGs, generated scenario transcripts, UI screenshots |
 
 ## 10. Submission checklist
