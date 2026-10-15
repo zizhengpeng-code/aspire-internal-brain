@@ -25,6 +25,7 @@ RUNTIME_DEFAULTS = {
     "DEMO_NOW": "2026-10-14T14:05:00+08:00",
     "MAX_QUESTIONS_PER_SESSION": "20",
     "MAX_QUESTIONS_PER_DAY": "300",
+    "LOGIN_FLOW": "1",          # show the sign-in screen on the hosted demo
 }
 
 

@@ -40,7 +40,7 @@ except ImportError:                       # streamlit is optional for the rest o
 APP = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app.py")
 TIMEOUT = 120
 ENV_VARS = ("MAX_QUESTIONS_PER_SESSION", "MAX_QUESTIONS_PER_DAY", "DEMO_SEED_ON_START",
-            "DEMO_AUTORESET_IDLE_MINUTES", "LLM_MODEL")
+            "DEMO_AUTORESET_IDLE_MINUTES", "LLM_MODEL", "LOGIN_FLOW")
 
 
 class EnvBase(unittest.TestCase):
@@ -549,6 +549,123 @@ class IdleAutoResetThroughTheUi(EnvBase):
         self.assertFalse(at.exception)
         self.assertFalse(at.session_state["auto_reset"]["reset"])
         self.assertFalse(os.path.exists(self.audit_path), "nothing was reset, so nothing is logged")
+
+
+class LoginFlowScreen(unittest.TestCase):
+    """Sign-in screen behind the LOGIN_FLOW flag."""
+
+    def setUp(self):
+        self.saved_login = os.environ.get("LOGIN_FLOW")
+        os.environ["DEMO_SEED_ON_START"] = "0"
+        os.environ["MAX_QUESTIONS_PER_DAY"] = "1000000"
+        os.environ["DEMO_AUTORESET_IDLE_MINUTES"] = "0"
+
+    def tearDown(self):
+        if self.saved_login is None:
+            os.environ.pop("LOGIN_FLOW", None)
+        else:
+            os.environ["LOGIN_FLOW"] = self.saved_login
+
+    def open(self):
+        at = AppTest.from_file(APP, default_timeout=TIMEOUT).run()
+        self.assertFalse(at.exception, f"app raised on first render: {at.exception}")
+        return at
+
+    def _settle(self, at, max_runs=8):
+        """Let st.rerun() calls from the checking animation settle."""
+        for _ in range(max_runs):
+            at.run()
+            if at.session_state.get("login_stage") == "app":
+                break
+
+    def test_login_flow_off_app_unchanged(self):
+        """With the flag off the sidebar still shows the original dropdown."""
+        os.environ["LOGIN_FLOW"] = "0"
+        at = self.open()
+        labels = [s.label for s in at.sidebar.selectbox]
+        self.assertTrue(any("Sign in as" in l for l in labels),
+                        f"sidebar selectbox labels: {labels}")
+
+    def test_login_flow_on_shows_signin(self):
+        """With the flag on the first thing shown is the sign-in screen."""
+        os.environ["LOGIN_FLOW"] = "1"
+        at = self.open()
+        self.assertTrue(
+            any("Sign in to Internal Brain" in m.value for m in at.markdown),
+            [m.value for m in at.markdown],
+        )
+        # The sidebar must not have the user picker during sign-in.
+        self.assertFalse(
+            any("Sign in as" in s.label for s in at.sidebar.selectbox),
+            [s.label for s in at.sidebar.selectbox],
+        )
+
+    def _btn(self, at, key):
+        """Find a button by its key."""
+        return next(b for b in at.button if b.key == key)
+
+    def test_login_flow_select_and_continue(self):
+        """Selecting an account and continuing lands in the app with that user set."""
+        os.environ["LOGIN_FLOW"] = "1"
+        with unittest.mock.patch.object(app.time, "sleep", lambda _sec: None):
+            at = self.open()
+            self._btn(at, "pick_jdoe").click().run()
+            self.assertEqual(at.session_state.get("login_choice"), "jdoe")
+            self.assertTrue(
+                any("Continue as Jamie Doe" in b.label for b in at.button),
+                [b.label for b in at.button],
+            )
+            self._btn(at, "login_continue").click().run()
+            self._settle(at)
+            self.assertEqual(at.session_state.get("user"), "jdoe")
+            self.assertEqual(at.session_state.get("login_stage"), "app")
+            self.assertTrue(at.session_state.get("login_intro_done"))
+
+    def test_login_flow_jdoe_readable_count(self):
+        """After sign-in as jdoe the readable count matches authz.list_readable."""
+        os.environ["LOGIN_FLOW"] = "1"
+        with unittest.mock.patch.object(app.time, "sleep", lambda _sec: None):
+            at = self.open()
+            self._btn(at, "pick_jdoe").click().run()
+            self._btn(at, "login_continue").click().run()
+            self._settle(at)
+            import authz
+            expected = len(authz.list_readable("jdoe"))
+            total = len(authz.documents())
+            self.assertEqual(at.session_state.get("user"), "jdoe")
+            self.assertEqual(at.session_state.get("_login_check_count"),
+                             (expected, total))
+
+    def test_login_flow_atan_readable_count(self):
+        """After sign-in as atan the readable count matches authz.list_readable."""
+        os.environ["LOGIN_FLOW"] = "1"
+        with unittest.mock.patch.object(app.time, "sleep", lambda _sec: None):
+            at = self.open()
+            self._btn(at, "pick_atan").click().run()
+            self._btn(at, "login_continue").click().run()
+            self._settle(at)
+            import authz
+            expected = len(authz.list_readable("atan"))
+            total = len(authz.documents())
+            self.assertEqual(at.session_state.get("user"), "atan")
+            self.assertEqual(at.session_state.get("_login_check_count"),
+                             (expected, total))
+
+    def test_login_flow_switch_user_triggers_checking(self):
+        """Switching user from the sidebar shows the shortened checking screen."""
+        os.environ["LOGIN_FLOW"] = "1"
+        with unittest.mock.patch.object(app.time, "sleep", lambda _sec: None):
+            at = self.open()
+            # Sign in as jdoe first.
+            self._btn(at, "pick_jdoe").click().run()
+            self._btn(at, "login_continue").click().run()
+            self._settle(at)
+            self.assertEqual(at.session_state.get("user"), "jdoe")
+            # Switch to atan via the sidebar selectbox.
+            at.sidebar.selectbox[0].set_value("atan").run()
+            self._settle(at)
+            self.assertEqual(at.session_state.get("user"), "atan")
+            self.assertEqual(at.session_state.get("login_stage"), "app")
 
 
 if __name__ == "__main__":

@@ -26,6 +26,11 @@ A third is the question a stranger asks *about the assistant* rather than about 
 "what can I know in this system?". The UI answers that one too, from the live permission set:
 the counts and the spaces come from the ACL, so the answer is exact rather than guessed, and
 it names only what this user may read.
+
+A fourth is a real sign-in screen: on the hosted demo the visitor chooses a demo account,
+sees a short "Checking what you can read" animation with the live permission count, and only
+then enters the app. Behind a ``LOGIN_FLOW`` flag so tests and local runs keep the sidebar
+dropdown they already have.
 """
 import collections
 import json
@@ -295,6 +300,11 @@ def auto_reset_if_idle():
     if minutes <= 0:
         return {"reset": False, "reason": "disabled by DEMO_AUTORESET_IDLE_MINUTES"}
     return simulate.reset_if_idle(idle_minutes=minutes)
+
+
+def login_flow_enabled():
+    """True when the hosted demo should show the sign-in screen instead of the sidebar dropdown."""
+    return os.environ.get("LOGIN_FLOW", "0") == "1"
 
 
 def questions_asked():
@@ -791,7 +801,177 @@ def page_roi():
                "presenter's own numbers before the figures are quoted externally.")
 
 
+# ------------------------------------------------------------------------------ login flow
+# Shown on the hosted demo (LOGIN_FLOW=1). A two-screen sign-in: pick an account, watch the
+# permission check tick off, then enter the app. Switching user later shows only the check,
+# shortened. The flag is off by default so local runs and the test suite need no change.
+
+_LOGIN_CSS = """
+<style>
+  .login-title { color: #131313; font-size: 1.7rem; font-weight: 600; margin-bottom: 0.2rem; }
+  .login-subtitle { color: #555; font-size: 0.95rem; margin-bottom: 1.2rem; }
+  .account-card-btn button {
+    background: #FFFFFF !important; color: #131313 !important;
+    border: 1.5px solid #E3E5E8 !important; border-radius: 14px !important;
+    padding: 14px 18px !important; text-align: left !important; font-weight: 500 !important;
+    width: 100% !important;
+  }
+  .account-card-btn button:hover { border-color: #131313 !important; }
+  .continue-btn button {
+    background: #131313 !important; color: #FFFFFF !important;
+    border-radius: 10px !important; font-weight: 500 !important;
+  }
+  .check-row { font-size: 1.05rem; margin: 0.35rem 0; }
+</style>
+"""
+
+
+def initials(name):
+    """Two-letter initials, e.g. Jamie Doe → JD."""
+    parts = [p for p in name.split() if p]
+    return "".join(p[0].upper() for p in parts[:2]) if parts else "?"
+
+
+def _login_users():
+    """Demo accounts from the directory, excluding personas."""
+    return [u for u in authz.directory().get("users", {}) if not u.startswith("persona_")]
+
+
+def render_signin_screen():
+    """Screen 1 — choose a demo account."""
+    choice = st.session_state.get("login_choice")
+    css = _LOGIN_CSS
+    if choice:
+        css += (f'\ndiv.stVerticalBlock.st-key-account_{choice} '
+                f'{{ background: #BEFFCF !important; border-color: #BEFFCF !important; }}')
+    st.markdown(css, unsafe_allow_html=True)
+
+    st.markdown('<div class="login-title">Sign in to Internal Brain</div>',
+                unsafe_allow_html=True)
+    st.markdown('<div class="login-subtitle">Each demo account can read a different set of '
+                'documents — the same question may be answered for one colleague and refused '
+                'for another.</div>', unsafe_allow_html=True)
+
+    users = _login_users()
+    cols = st.columns(2)
+    for i, uid in enumerate(users):
+        info = user_info(uid)
+        name = info.get("name", uid)
+        title = info.get("title", "")
+        av = initials(name)
+        with cols[i % 2]:
+            with st.container(key=f"account_{uid}", border=True):
+                c1, c2 = st.columns([1, 4])
+                with c1:
+                    st.markdown(
+                        f'<div style="width:40px;height:40px;border-radius:50%;'
+                        f'background:#131313;color:#fff;display:flex;'
+                        f'align-items:center;justify-content:center;'
+                        f'font-weight:600;font-size:0.9rem;">{av}</div>',
+                        unsafe_allow_html=True)
+                with c2:
+                    st.markdown(f"**{name}**  \n{title}")
+                if st.button("Select", key=f"pick_{uid}", width="stretch"):
+                    st.session_state["login_choice"] = uid
+                    st.rerun()
+
+    if choice:
+        name = user_info(choice).get("name", choice)
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button(f"Continue as {name}", key="login_continue", width="stretch"):
+            st.session_state["user"] = choice
+            st.session_state["login_stage"] = "checking"
+            st.session_state["login_full"] = True
+            st.session_state["login_choice"] = None
+            st.rerun()
+
+
+def render_checking_screen(user_id, full=True):
+    """Screen 2 — tick off identity, permissions and audit chain, then welcome."""
+    info = user_info(user_id)
+    name = info.get("name", user_id)
+    title = info.get("title", "")
+    readable = len(authz.list_readable(user_id))
+    total = len(authz.documents())
+    audit_ok = audit().verify_detail()["ok"]
+    # Stash the live count so tests can verify it without parsing transient markdown.
+    st.session_state["_login_check_count"] = (readable, total)
+
+    st.markdown(_LOGIN_CSS, unsafe_allow_html=True)
+    st.markdown('<div class="login-title">Checking what you can read</div>',
+                unsafe_allow_html=True)
+
+    if full:
+        s1 = st.empty()
+        s2 = st.empty()
+        s3 = st.empty()
+
+        s1.markdown('<div class="check-row">⏳ Identity confirmed</div>',
+                    unsafe_allow_html=True)
+        time.sleep(0.5)
+        s1.markdown(f'<div class="check-row">✅ Identity confirmed — {name}, {title}</div>',
+                    unsafe_allow_html=True)
+
+        steps = 8
+        for i in range(steps + 1):
+            n = int(readable * i / steps)
+            s2.markdown(f'<div class="check-row">⏳ Permissions loaded — {n} of {total} '
+                        f'documents</div>', unsafe_allow_html=True)
+            time.sleep(0.15)
+        s2.markdown(f'<div class="check-row">✅ Permissions loaded — {readable} of {total} '
+                    f'documents</div>', unsafe_allow_html=True)
+
+        s3.markdown('<div class="check-row">⏳ Audit trail ready</div>',
+                    unsafe_allow_html=True)
+        time.sleep(0.4)
+        if audit_ok:
+            s3.markdown('<div class="check-row">✅ Audit trail ready</div>',
+                        unsafe_allow_html=True)
+        else:
+            s3.markdown('<div class="check-row">⚠️ Audit trail ready — verification failed</div>',
+                        unsafe_allow_html=True)
+        time.sleep(0.3)
+    else:
+        s = st.empty()
+        s.markdown('<div class="check-row">⏳ Permissions loaded</div>',
+                   unsafe_allow_html=True)
+        time.sleep(0.3)
+        s.markdown(f'<div class="check-row">✅ Permissions loaded — {readable} of {total} '
+                   f'documents</div>', unsafe_allow_html=True)
+        time.sleep(0.2)
+
+    st.markdown(f'<div class="login-title" style="margin-top:1rem;">Welcome, '
+                f'{name.split()[0]}</div>', unsafe_allow_html=True)
+    time.sleep(0.6)
+
+    st.session_state["login_stage"] = "app"
+    st.session_state["login_intro_done"] = True
+    st.session_state["login_last_user"] = user_id
+    st.rerun()
+
+
+def handle_login_flow():
+    """Return True when a login screen was drawn (the normal app must not render underneath)."""
+    stage = st.session_state.get("login_stage")
+    if stage == "checking":
+        user_id = st.session_state.get("user")
+        if not user_id:
+            st.session_state["login_stage"] = None
+            st.rerun()
+            return True
+        render_checking_screen(user_id, full=st.session_state.get("login_full", True))
+        return True
+    if stage == "app":
+        return False
+    # stage is None — first visit or a recovery
+    if st.session_state.get("login_intro_done"):
+        return False
+    render_signin_screen()
+    return True
+
+
 # ------------------------------------------------------------------------------ shell
+
 def sidebar():
     with st.sidebar:
         st.title("🔐 Internal Brain")
@@ -802,11 +982,31 @@ def sidebar():
             st.caption(f"♻️ Shared demo state was reset when you arrived — {outcome['reason']}, "
                        "so nothing another visitor changed is left over. The reset is in the "
                        "audit log as a `state_reset` admin event.")
+
+        # During the initial sign-in flow the user has not been chosen yet; show a minimal sidebar.
+        if login_flow_enabled() and not st.session_state.get("login_intro_done"):
+            return "Chat"
+
         users = [u for u in authz.directory().get("users", {}) if not u.startswith("persona_")]
         labels = {u: f"{user_info(u).get('name', u)} — {user_info(u).get('title', '')}" for u in users}
-        st.session_state.setdefault("user", users[0] if users else None)
-        st.selectbox("Sign in as (simulated SSO)", users, key="user",
-                     format_func=lambda u: labels.get(u, u))
+
+        if login_flow_enabled():
+            # After the intro, the sidebar becomes a switcher; changing user triggers the
+            # shortened checking screen.
+            st.selectbox("Switch user", users, key="user",
+                         format_func=lambda u: labels.get(u, u))
+            last = st.session_state.get("login_last_user")
+            current = st.session_state.get("user")
+            if last is not None and current != last:
+                st.session_state["login_stage"] = "checking"
+                st.session_state["login_full"] = False
+                st.session_state["login_last_user"] = current
+                st.rerun()
+        else:
+            st.session_state.setdefault("user", users[0] if users else None)
+            st.selectbox("Sign in as (simulated SSO)", users, key="user",
+                         format_func=lambda u: labels.get(u, u))
+
         info = user_info(st.session_state.user)
         st.caption(f"groups: {', '.join(info.get('groups', []))} · employment: {info.get('employment', '')}")
         groups = user_groups(st.session_state.user)
@@ -831,6 +1031,8 @@ def main():
         # After the seeding, so the reset event lands in a log that exists.
         st.session_state.auto_reset = auto_reset_if_idle()
     page = sidebar()
+    if login_flow_enabled() and handle_login_flow():
+        return
     if st.session_state.get("user") is None:
         st.error("No demo users found in data/directory.json.")
         return
