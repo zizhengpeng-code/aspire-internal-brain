@@ -652,7 +652,7 @@ mmdc -i docs/architecture.mmd -o docs/architecture.svg -b white
 | **BM25 recall on synonyms** | Measured: bm25/doc recall@3 92.1% vs vector/doc 98.4%. Mitigated by the hybrid retriever; the default stays BM25 to keep the demo dependency-free. |
 | **Over-refusal under attack** | Measured 13.0% false refusals (3 of 23) in the latest run; two cases wrapped a legitimate question in an injection and were refused (AG33, AG34), the third asked for a figure only a hidden document contains (AG21). A usability cost, not a security one. |
 | **Evaluation set is not author-confirmed** | Every metric here comes from draft cases; the `user` subset is empty. Reported as such. |
-| **Rephrased repeated question** | The repeated-question fix re-retrieves only on an *exact* repeat (after normalising case, punctuation and whitespace). A *rephrased* repeat can still be answered from the conversation history and then refused by the guard. Safe failure — the guard still blocks any answer whose citations are no longer readable. **Accepted**. |
+| **A question about a turn that was dropped** | Retrieval is forced whenever the first round comes back without a tool call, so an exact repeat, a rephrased repeat and a follow-up on a related topic are all re-retrieved and answered from what is true now. The exception is the case forcing cannot help: when *every* earlier turn was filtered out because its documents became unreadable, a follow-up such as "repeat what you just told me" points at a conversation the user can no longer see, so it is refused rather than answered from an unrelated document on the same topic. A usability cost, not a security one (`QuestionAboutADroppedTurnIsRefused`). |
 
 ## 8. Security-framework mapping
 

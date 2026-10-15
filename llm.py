@@ -16,10 +16,10 @@ Scripted fakes (selected by ``LLM_MODEL``), all implementing ``bind_tools`` /
              opens and cites it (answer cases) or emits the refusal (deny cases).
 * ``leaky``  used by the evaluation only: cites a visible document *and* a sentence
              carrying an invisible document's canary, to measure the leak rate.
-* ``sticky`` regression test only: like ``fake``, but when the *same* question has
-             already been answered in the transcript it recites that answer and calls
-             no tool — the real model's failure mode when a question is repeated in
-             one session (see the defect fixed in ``agent.py``).
+* ``sticky`` regression test only: like ``fake``, but on any *follow-up* it recites the
+             answer already in the transcript and calls no tool — the real model's failure
+             mode when a question follows a related one in the same session (see the defect
+             fixed in ``agent.py``).
 
 Token counts come from ``usage_metadata``; cost is tokens x
 ``LLM_PRICE_IN_PER_M`` / ``LLM_PRICE_OUT_PER_M`` (recorded as None when unset).
@@ -129,9 +129,9 @@ class _FakeModel:
         return AIMessage(content=" ".join(parts))
 
     @staticmethod
-    def _asked_twice(messages, question):
-        asked = [m.content or "" for m in messages if isinstance(m, HumanMessage)]
-        return asked.count(question) > 1
+    def _has_prior_answer(messages):
+        """True once any earlier turn in the transcript carries an answer."""
+        return any(isinstance(m, AIMessage) and (m.content or "").strip() for m in messages)
 
     def _fake(self, messages, tool_messages):
         question = self._question(messages)
@@ -142,15 +142,15 @@ class _FakeModel:
         return self._snippets(tool_messages)
 
     def _sticky(self, messages, tool_messages):
-        """The real model's failure mode, reproduced: once the same question has been
-        answered in the transcript it recites that answer and calls no tool. The guard
-        then replaces the whole answer with the refusal, because no document was
-        returned *this* turn. ``fake`` always searches, so it cannot show the defect."""
-        question = self._question(messages)
+        """The real model's failure mode, reproduced: on a follow-up it recites the answer
+        already in the transcript and calls no tool, because the previous turn's content
+        reads like what "the tools provided". The guard then replaces the whole answer with
+        the refusal, because no document was returned *this* turn. ``fake`` always searches,
+        so it cannot show the defect."""
         if not tool_messages:
-            if self._asked_twice(messages, question):
+            if self._has_prior_answer(messages):
                 return AIMessage(content=self._last_answer(messages))
-            return self._search_call(question)
+            return self._search_call(self._question(messages))
         return self._snippets(tool_messages)
 
     def _oracle(self, tool_messages):

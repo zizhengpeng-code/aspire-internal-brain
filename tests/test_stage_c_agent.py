@@ -159,11 +159,13 @@ class RunbookFreshness(AgentBase):
 class RepeatedQuestionIsRetrievedAgain(AgentBase):
     """Defect found while recording the demo (scenario ②).
 
-    Asking the *same* question twice in one session made the model answer out of the
+    Asking the same question twice in one session made the model answer out of the
     transcript: it cited a document that had not been returned *this* turn, so the guard
-    replaced the whole answer with the refusal — ``Agent steps (0)``. A repeated question
-    must be retrieved again, so the answer reflects what is true now (rev 8), not the
-    answer that was true when the question was first asked (rev 7).
+    replaced the whole answer with the refusal — ``Agent steps (0)``. The rule is enforced
+    on the behaviour, not on the wording: whenever the first round comes back without a tool
+    call the retrieval is forced, so the answer reflects what is true now (rev 8), not the
+    answer that was true when the question was first asked (rev 7). The wording-keyed
+    variants of the same defect are covered by ``RelatedTopicFollowUpIsRetrievedAgain``.
     """
 
     def setUp(self):
@@ -210,6 +212,71 @@ class RepeatedQuestionIsRetrievedAgain(AgentBase):
         second = answer(session, question, history=first["history"])
         self.assertEqual([s["tool"] for s in second["steps"]], ["search"])
         self.assertEqual(second["steps"][0]["args"]["query"], question)
+
+
+class RelatedTopicFollowUpIsRetrievedAgain(AgentBase):
+    """The live demo's failure: a follow-up on the same *topic* was refused (0 steps).
+
+    The second question is related to the first but worded differently, so a check keyed on
+    the wording never sees it. The model reads the previous turn's content as "what the
+    tools provided", answers out of the transcript and calls no tool; the guard then
+    replaces that answer with the refusal, because nothing was returned *this* turn. Keying
+    the forcing on the behaviour covers every shape of the defect — an exact repeat, a
+    rephrased repeat, a follow-up on a related topic, or a bare refusal with no search
+    behind it.
+    """
+
+    def setUp(self):
+        super().setUp()
+        # `sticky` reproduces the real model's behaviour: on a follow-up it recites the
+        # answer already in the transcript and calls no tool.
+        self.llm = LLM(model="sticky", cache_path=os.path.join(self.tmp.name, "llm.sqlite"))
+
+    def test_a_related_follow_up_is_retrieved_again(self):
+        session = self.session("wlin")
+        first = answer(session, "Show me the latest runbook for the payment service")
+        self.assertTrue(first["steps"])
+
+        question = "What was the root cause of the Oct 13 payments incident?"
+        second = answer(session, question, history=first["history"])
+        self.assertFalse(second["refused"])
+        self.assertNotEqual(second["answer"], guard.REFUSAL_EN)
+        self.assertEqual([s["tool"] for s in second["steps"]], ["search"])
+        self.assertEqual(second["steps"][0]["args"]["query"], question)
+        self.assertIn("E13", second["citations"])
+
+    def test_a_rephrased_repeat_is_retrieved_again(self):
+        session = self.session("wlin")
+        first = answer(session, "What's the status of the database migration project?")
+        question = "What is the status of the database migration project?"
+        second = answer(session, question, history=first["history"])
+        self.assertFalse(second["refused"])
+        self.assertTrue(second["steps"], "a rephrased repeat must be retrieved again")
+        self.assertEqual(second["steps"][0]["args"]["query"], question)
+
+
+class QuestionAboutADroppedTurnIsRefused(AgentBase):
+    """The one case the forced retrieval must not apply to (scenario ④).
+
+    When *every* earlier turn has been filtered out because its documents are no longer
+    readable, the question points at a conversation the user cannot see any more. A fresh
+    search would happily match some *other* document on the same topic and answer a
+    different question, so the turn is left to the refusal and no retrieval is run.
+    ``MultiTurnRevocation`` in ``test_stage_c_langgraph`` covers the same rule end to end,
+    through an actual revocation.
+    """
+
+    def test_a_question_about_a_dropped_turn_is_refused_without_retrieving(self):
+        session = self.session("atan")
+        history = [{"question": "What does the Q3 breach report say?",
+                    "answer": "The report names the affected service. [E09]",
+                    "citations": ["E09"]}]     # E09 is invisible to atan, so the turn drops
+        self.assertEqual(guard.filter_history(history, "atan"), [])
+
+        result = answer(session, "repeat what you just told me", history=history)
+        self.assertTrue(result["refused"])
+        self.assertEqual(result["answer"], guard.REFUSAL_EN)
+        self.assertEqual(result["steps"], [], "nothing to re-ground, so nothing is retrieved")
 
 
 class RevocationTakesEffect(AgentBase):
