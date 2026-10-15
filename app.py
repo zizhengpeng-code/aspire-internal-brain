@@ -25,6 +25,7 @@ import streamlit as st
 
 import authz
 import env
+import limits
 import oversharing
 import sanitize
 import simulate
@@ -37,6 +38,14 @@ env.load()
 AUDIT_PATH = "logs/audit.jsonl"
 RESULTS_DIR = "results"
 PLATFORM_ICON = {"confluence": "📄", "jira": "🎫", "slack": "💬", "gdrive": "📁"}
+SEED_SPINNER = ("First start on this instance — building the demo audit history with a few "
+                "real queries, so the alert list and the compliance views have something to "
+                "show. This happens once…")
+SHARED_STATE_NOTICE = (
+    "**Shared demo** — every visitor uses the same instance, so the Admin actions (push "
+    "update, revoke, tamper, truncate) change what everyone sees. Press **Reset demo "
+    "state** when you are done."
+)
 DEMO_SCRIPT = [
     "① jdoe: database migration status + Slack blockers → E01/E02/E03, never the 2026-11-07 slip. "
     "Switch to wlin → the slip may appear.",
@@ -124,6 +133,73 @@ def warm_index():
         return {"skipped": f"{type(exc).__name__}: {exc}"}
 
 
+def demo_history_missing(path=AUDIT_PATH):
+    """True when this instance has no audit history yet (``logs/`` is git-ignored)."""
+    return not os.path.exists(path)
+
+
+def seed_demo_history(path=AUDIT_PATH):
+    """Seed the audit history once, if it is missing. Returns a small status dict.
+
+    A fresh cloud instance starts with an empty audit log, because ``logs/`` is not in the
+    repository: the alert list would be empty and the compliance officer's ``query_audit``
+    about jdoe would find nothing. One run of the existing ``simulate.seed()`` reproduces
+    the state the demo script assumes. Set ``DEMO_SEED_ON_START=0`` to skip it.
+    """
+    if os.environ.get("DEMO_SEED_ON_START", "1") == "0":
+        return {"seeded": False, "reason": "disabled by DEMO_SEED_ON_START=0"}
+    if not demo_history_missing(path):
+        return {"seeded": False, "reason": f"{path} already present"}
+    rows = simulate.seed(audit_path=path)
+    return {"seeded": True, "queries": len(rows)}
+
+
+@st.cache_resource(show_spinner=SEED_SPINNER)
+def ensure_demo_history():
+    """Run the seeding at most once per Streamlit instance (``cache_resource`` is
+    process-wide, so concurrent visitors do not each seed the log)."""
+    return seed_demo_history()
+
+
+def questions_asked():
+    """Questions asked in this browser session, across every signed-in user."""
+    return st.session_state.setdefault("questions_asked", 0)
+
+
+def spend_question():
+    """Count one question: against this session and against the shared daily budget."""
+    st.session_state["questions_asked"] = questions_asked() + 1
+    limits.record_question()
+
+
+def ask(user_id, question, spinner_text):
+    """Run one question and store the turn. The budget has already been checked."""
+    spend_question()                    # spend before the model call, never after
+    session = get_session(user_id)
+    with st.spinner(spinner_text):
+        outcome = agent_answer(session, question, history=history(user_id))
+    turns(user_id).append({"question": question, "answer": outcome["answer"],
+                           "citations": outcome["citations"], "steps": outcome["steps"],
+                           "refused": outcome["refused"]})
+    st.session_state[f"hist::{user_id}"] = outcome["history"]
+    st.rerun()
+
+
+def budgeted_chat_input(placeholder, spinner_text):
+    """The chat input, or a polite notice once the spending limit is reached.
+
+    The check runs here, before the model is ever called, so an exhausted budget cannot
+    spend anything.
+    """
+    verdict = limits.check(questions_asked())
+    if not verdict["allowed"]:
+        st.info(verdict["message"])
+        return
+    question = st.chat_input(placeholder)
+    if question:
+        ask(st.session_state.user, question, spinner_text)
+
+
 def render_citations(citation_ids, docs):
     if not citation_ids:
         return
@@ -183,20 +259,12 @@ def page_chat():
     for turn in turns(user_id):
         render_turn(turn, docs)
 
-    question = st.chat_input("Ask about the knowledge base…")
-    if question:
-        session = get_session(user_id)
-        with st.spinner("Searching…"):
-            outcome = agent_answer(session, question, history=history(user_id))
-        turns(user_id).append({"question": question, "answer": outcome["answer"],
-                               "citations": outcome["citations"], "steps": outcome["steps"],
-                               "refused": outcome["refused"]})
-        st.session_state[f"hist::{user_id}"] = outcome["history"]
-        st.rerun()
+    budgeted_chat_input("Ask about the knowledge base…", "Searching…")
 
 
 def page_admin():
     st.subheader("Admin — demo state changes")
+    st.info(SHARED_STATE_NOTICE)
     st.caption("Each button calls `simulate.py`. State lives in `state/` (git-ignored) so the "
                "committed `data/` files stay pristine.")
     render_last_action()
@@ -260,17 +328,9 @@ def page_compliance():
         docs = authz.documents()
         for turn in turns(st.session_state.user):
             render_turn(turn, docs)
-        question = st.chat_input("e.g. Show me everything user jdoe accessed in "
-                                 "confluence:payment-gateway in the last 30 days")
-        if question:
-            session = get_session(st.session_state.user)
-            with st.spinner("Querying the audit log…"):
-                outcome = agent_answer(session, question, history=history(st.session_state.user))
-            turns(st.session_state.user).append(
-                {"question": question, "answer": outcome["answer"], "citations": outcome["citations"],
-                 "steps": outcome["steps"], "refused": outcome["refused"]})
-            st.session_state[f"hist::{st.session_state.user}"] = outcome["history"]
-            st.rerun()
+        budgeted_chat_input("e.g. Show me everything user jdoe accessed in "
+                            "confluence:payment-gateway in the last 30 days",
+                            "Querying the audit log…")
 
     with tab_alerts:
         fired = [r for r in audit().records() if r.get("event") == "alert"]
@@ -388,6 +448,7 @@ def sidebar():
     with st.sidebar:
         st.title("🔐 Internal Brain")
         st.caption("LumenPay — permission-aware internal assistant (simulated company)")
+        st.info(SHARED_STATE_NOTICE, icon="👥")
         users = [u for u in authz.directory().get("users", {}) if not u.startswith("persona_")]
         labels = {u: f"{user_info(u).get('name', u)} — {user_info(u).get('title', '')}" for u in users}
         st.session_state.setdefault("user", users[0] if users else None)
@@ -412,6 +473,7 @@ def sidebar():
 
 def main():
     st.set_page_config(page_title="Internal Brain — LumenPay", page_icon="🔐", layout="wide")
+    ensure_demo_history()          # once per instance: seed the audit history if logs/ is empty
     page = sidebar()
     if st.session_state.get("user") is None:
         st.error("No demo users found in data/directory.json.")

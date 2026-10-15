@@ -565,7 +565,7 @@ pip install -r requirements.txt
 cp .env.example .env          # then fill in LLM_API_KEY (and EMBED_* for vector retrieval)
 python evaluate.py            # retrieval evaluation (BM25, no API needed)
 python evaluate_agent.py      # agent evaluation, with the ablation sweep
-python -m unittest discover tests     # 114 tests, no external API, no OpenFGA service
+python -m unittest discover tests     # 135 tests, no external API, no OpenFGA service
 
 streamlit run app.py          # the demo UI
 python scripts/capture_scenarios.py   # regenerate docs/scenarios.md
@@ -575,6 +575,31 @@ Everything runs against the scripted `fake` model and the local authorization ba
 `.env` is absent, so the test suite and the wiring can be exercised without any key. Real
 numbers require a real `LLM_MODEL`; the evaluation scripts refuse to look authoritative for
 the scripted models and stamp every report with the model name.
+
+### 5.1 The public demo (Streamlit Community Cloud)
+
+The app is deployed as a public link so the judges can drive it themselves. That means
+strangers share **one** instance, so three things are handled explicitly:
+
+- **First-start demo history.** `logs/` is git-ignored, so a fresh instance has an empty
+  audit log — the alert list would be empty and the compliance officer's `query_audit`
+  would find nothing. On startup, if `logs/audit.jsonl` is missing, the app runs the
+  existing `simulate.seed()` **once per instance** (`st.cache_resource`, with a spinner);
+  no log file is ever committed. `DEMO_SEED_ON_START=0` skips it.
+- **Shared-state notice.** The sidebar and the Admin page say so out loud: the Admin
+  actions change what every visitor sees, so press **Reset demo state** when you are done.
+- **Spending limits.** Every question is capped twice, both checked *before* any model
+  call: `MAX_QUESTIONS_PER_SESSION` (default **20**, per browser session) and
+  `MAX_QUESTIONS_PER_DAY` (default **300**, across all sessions, counted in
+  `.cache/questions.json`). Once a cap is reached the chat input is replaced by a polite
+  notice instead of calling the model.
+
+All configuration is read from the environment (`env.py`), which is also how Streamlit
+Cloud exposes root-level secrets — so the same `LLM_API_KEY` variable works locally and in
+the cloud, and no secret is ever committed. `requirements.txt` resolves to Linux/CPython
+3.12 wheels (including `chromadb`'s `cp39-abi3` wheel and `onnxruntime`'s
+`manylinux_2_28` wheel, which needs glibc ≥ 2.28 — satisfied by Streamlit Cloud's Debian
+base).
 
 The diagrams are committed as Mermaid source (`docs/*.mmd`), which GitHub and VS Code's
 Markdown preview render directly. Pre-rendered SVG copies (`docs/*.svg`) are committed
@@ -651,11 +676,12 @@ Correspondence only — no framework definitions are reproduced.
 | `retrieval.py` | chunking, BM25 / vector / hybrid retrievers |
 | `audit.py` | hash-chained audit log with signed checkpoints |
 | `ai_scope.py`, `oversharing.py`, `sanitize.py`, `alerts.py` | scope exclusion, over-sharing scan, output sanitisation, alert rules |
+| `limits.py` | public-demo spending limits (per browser session, and per day across all sessions) |
 | `evaluate.py`, `evaluate_agent.py` | retrieval and agent evaluation (AgentDojo-named metrics, ablations) |
 | `app.py` | the Streamlit demo UI |
 | `simulate.py` | demo state changes (content update, revocation, tamper, truncate, reset, index warm-up) |
 | `scripts/capture_scenarios.py` | runs the five demo scenarios end to end and regenerates `docs/scenarios.md` |
-| `tests/` | 114 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI — no external API |
+| `tests/` | 135 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI, demo limits — no external API |
 | `docs/` | Mermaid diagram sources and pre-rendered SVGs, generated scenario transcripts, UI screenshots |
 
 ## 10. Submission checklist
@@ -673,4 +699,5 @@ Correspondence only — no framework definitions are reproduced.
 - [x] README in English (this file)
 - [ ] Confirm the draft evaluation cases so the `user` subset is non-empty, then rerun both evaluations
 - [ ] Record the 5–8 minute demo video (screen capture of `streamlit run app.py`)
+- [ ] Deploy the app to Streamlit Community Cloud as a public demo link (section 5.1: first-start seed, shared-state notice, spending limits)
 - [x] Repository pushed and public: <https://github.com/zizhengpeng-code/aspire-internal-brain>
