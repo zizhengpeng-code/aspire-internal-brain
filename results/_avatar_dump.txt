@@ -1,0 +1,25 @@
+== starting app on 8503 ==
+app healthy after 1s
+== running: C:/Users/Administrator/.workbuddy/binaries/node/versions/22.22.2-6/node.exe results/_avatar_dump.mjs ==
+=== [data-testid="stChatMessageAvatarAssistant"]  (1 on the page) ===
+  [0] rect  x=396 y=-513  32x32
+      host  display=flex dir=row align=center justify=center gap=normal pad=0px box=border-box overflow=visible pos=static border=0px radius=10px transform=matrix(1, 0, 0, 1, 0, -3)
+      kids  span[-] 20x20 at 0,6 disp=flex flex=0 0 auto pos=static
+      ::before content=none disp=block autoxauto pos=static inset=auto/auto/auto/auto margin=0px
+               bgSize=auto bgPos=0% 0% bgRepeat=repeat bg=none
+      ::after  content="" disp=block 12pxx19px pos=static inset=auto/auto/auto/auto margin=0px
+               bgSize=contain bgPos=50% 50% bgRepeat=no-repeat bg=url("http://127.0.0.1:8503/app/static/brand/aspire-mark.png")
+      html  <div data-testid="stChatMessageAvatarAssistant" class="st-emotion-cache-1krivcf exttvjz3"><span class="st-emotion-cache-leahp2 eafbkhs2"><span color="inherit" data-testid="stIconMaterial" translate="no" class="st-emotion-cache-1c9yjad e1vmumty0">smart_toy</span></span></div>
+=== [data-testid="stChatMessageAvatarUser"]  (1 on the page) ===
+  [0] rect  x=396 y=-612  32x32
+      host  display=flex dir=row align=center justify=center gap=normal pad=0px box=border-box overflow=visible pos=static border=0.666667px radius=10px transform=matrix(1, 0, 0, 1, 0, -3)
+      kids  span[-] 20x20 at -1,6 disp=flex flex=0 0 auto pos=static
+      ::before content=none disp=block autoxauto pos=static inset=auto/auto/auto/auto margin=0px
+               bgSize=auto bgPos=0% 0% bgRepeat=repeat bg=none
+      ::after  content="JD" disp=block 14.7708pxx19.9583px pos=static inset=auto/auto/auto/auto margin=0px
+               bgSize=auto bgPos=0% 0% bgRepeat=repeat bg=none
+      html  <div data-testid="stChatMessageAvatarUser" class="st-emotion-cache-10y8q2g exttvjz3"><span class="st-emotion-cache-leahp2 eafbkhs2"><span color="inherit" data-testid="stIconMaterial" translate="no" class="st-emotion-cache-1c9yjad e1vmumty0">face</span></span></div>
+
+tile box {"x":396,"y":-513,"w":32,"h":32}
+saved results/ui/_avatar-now.png (176x176)
+reaped pid 41964 still on 8503

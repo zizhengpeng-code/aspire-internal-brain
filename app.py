@@ -58,17 +58,25 @@ env.load()
 
 AUDIT_PATH = "logs/audit.jsonl"
 RESULTS_DIR = "results"
-PLATFORM_ICON = {"confluence": "📄", "jira": "🎫", "slack": "💬", "gdrive": "📁"}
+# Cited sources carry a glyph, and it is a Material symbol rather than an emoji. An emoji is
+# drawn by the operating system, so the same document rendered on macOS, Windows and Android
+# comes back as three different pictures in three different colours — and the colour is never
+# the brand's. `:material/…:` is Streamlit's own icon syntax: an inline SVG that inherits the
+# text colour, so a citation glyph is the same ink as the sentence around it. (This is also the
+# first item on the design-intelligence checklist: no emoji as icons.)
+PLATFORM_ICON = {"confluence": ":material/description:", "jira": ":material/confirmation_number:",
+                 "slack": ":material/chat_bubble:", "gdrive": ":material/folder:"}
+PLATFORM_ICON_FALLBACK = ":material/description:"
 SEED_SPINNER = ("First start on this instance — building the demo audit history with a few "
                 "real queries, so the alert list and the compliance views have something to "
                 "show. This happens once…")
 SHARED_STATE_NOTICE = (
-    "**Shared demo** — every visitor uses the same instance, so the Admin actions (push "
+    "**Shared demo.** Every visitor uses the same instance, so the Admin actions (push "
     "update, revoke, tamper, truncate) change what everyone sees. Press **Reset demo "
     "state** when you are done."
 )
 DEMO_SCRIPT = [
-    "① jdoe: database migration status + Slack blockers → E01/E02/E03, never the 2026-11-07 slip. "
+    "① jdoe: database migration status + Slack blockers → E01/E02/E03/E05, never the 2026-11-07 slip. "
     "Switch to wlin → the slip may appear.",
     "② wlin: latest payment-service runbook → PGW-RB-7. Push the 13:00 update → ask again → psp_failover.",
     "③ atan: Q3 security incident report → refusal. Two more injections → same. TLS exception → refusal.",
@@ -487,10 +495,10 @@ def render_examples(user_id, spinner_text, on_compliance_page=False):
     questions = example_questions(user_id)
     if not questions or (user_id in COMPLIANCE_EXAMPLES) != on_compliance_page:
         return
-    st.caption("Try one of these — clicking runs it exactly as if you had typed it:")
+    st.caption("Clicking any of these runs it exactly as if you had typed it:")
     note = REFUSED_ON_PURPOSE.get(user_id)
     if note:
-        st.caption(f"⚠️ {note}")
+        st.caption(f":material/warning: {note}")
     for index, question in enumerate(questions):
         if st.button(question, key=f"example::{user_id}::{index}", width="content"):
             submit(user_id, question, spinner_text)
@@ -505,7 +513,7 @@ def render_remaining_examples(user_id, spinner_text):
     remaining = [q for q in questions if q.strip().lower() not in asked]
     if not remaining:
         return
-    st.caption("Still to try — clicking runs it exactly as if you had typed it:")
+    st.caption("Still to try. Clicking one runs it exactly as if you had typed it:")
     for index, question in enumerate(remaining):
         if st.button(question, key=f"example::{user_id}::{index}::remain", width="content"):
             submit(user_id, question, spinner_text)
@@ -533,7 +541,7 @@ def render_next_step(turn, user_id):
     """Show a one-line hint for the presenter after a specific turn."""
     for check, text in _NEXT_STEPS.get(user_id, []):
         if check(turn):
-            st.caption(f"**Next step** — {text}")
+            st.caption(f"**Next step:** {text}")
             break
 
 
@@ -553,22 +561,57 @@ def budgeted_chat_input(user_id, placeholder, spinner_text):
 
 
 def render_citations(citation_ids, docs):
+    """The sources an answer stands on, three cards to a row.
+
+    Two things were wrong with these side by side and are fixed together, because they are the
+    same complaint — the row did not read as a grid:
+
+    * the cards were as tall as their own text, so a title that wrapped to four lines made its card
+      a line taller than the two beside it. The three ``Open in …`` links then landed 39px apart
+      (measured: ``results/layout-before.txt``) and the row looked broken rather than aligned. Rows
+      are now built three at a time, which also makes the *last* row independent: filling columns
+      round-robin used to leave column 1 holding two cards while column 3 held one, so nothing
+      could line up even in principle. ``_APP_CSS`` does the rest — each card fills its column and
+      the footnote is pinned to the bottom, so every card in a row shares a top edge, a bottom edge
+      and a link line;
+    * the timestamp was the raw ``updated_at``, and ``2026-10-05T09:00:00+08:00`` does not fit a
+      third of the transcript. It broke *inside the date*, on a hyphen, as
+      ``2026-10-`` / ``05T09:00:00+08:00``. The card shows the day, which fits; a to-the-second
+      value belongs on the audit pages, which is where anyone reads one.
+
+    The row is as wide as the set, up to three, and *every* row keeps that width — so one citation
+    still gets a full-width card and two still get a half each, but the odd card of a five-source
+    answer lines up under the first column at 168px instead of stretching to the full width of the
+    transcript and reading as a banner.
+    """
     if not citation_ids:
         return
-    columns = st.columns(min(len(citation_ids), 3))
-    for i, doc_id in enumerate(citation_ids):
-        doc = docs.get(doc_id)
-        with columns[i % len(columns)]:
-            with st.container(border=True):
-                if not doc:
-                    st.markdown(f"**{doc_id}**")
-                    continue
-                icon = PLATFORM_ICON.get(doc.get("source"), "📄")
-                st.markdown(f"{icon} **[{doc_id}] {doc['title']}**")
-                st.caption(f"{authz.location(doc)} · {doc.get('updated_at', '')}")
-                if doc.get("url"):
-                    # the URL comes from document metadata, never from model output
-                    st.markdown(f"[Open in {doc.get('source')}]({doc['url']})")
+    width = min(len(citation_ids), 3)
+    for start in range(0, len(citation_ids), width):
+        row = citation_ids[start:start + width]
+        for column, doc_id in zip(st.columns(width), row):
+            with column:
+                with st.container(border=True):
+                    _citation_card(doc_id, docs.get(doc_id))
+
+
+def _citation_card(doc_id, doc):
+    """One citation card. The three elements are positional — ``_APP_CSS`` pins the second one to
+    the bottom of the card, so the order here is load-bearing, not cosmetic."""
+    if not doc:
+        st.markdown(f"**{doc_id}**")
+        return
+    icon = PLATFORM_ICON.get(doc.get("source"), PLATFORM_ICON_FALLBACK)
+    st.markdown(f"{icon} **[{doc_id}] {doc['title']}**")
+    # Location above the day, as one caption rather than two elements: the card's own 16px gap
+    # would put a hole between two elements that belong together. `<br>` rather than markdown's
+    # trailing-double-space break, which is invisible in source and dies to any editor that trims
+    # whitespace. Both arguments come from document metadata, so both are escaped.
+    st.caption(f"{html_escape(authz.location(doc))}<br>{html_escape(doc.get('updated_at', '')[:10])}",
+               unsafe_allow_html=True)
+    if doc.get("url"):
+        # the URL comes from document metadata, never from model output
+        st.markdown(f"[Open in {doc.get('source')}]({doc['url']})")
 
 
 def render_turn(turn, docs):
@@ -606,9 +649,12 @@ def render_last_action():
 def page_chat():
     user_id = st.session_state.user
     info = user_info(user_id)
-    st.subheader(f"Chat — {info.get('name', user_id)}")
-    st.caption(f"{info.get('title', '')} · groups: {', '.join(user_groups(user_id))} · "
-               "answers are limited to documents you can read, right now")
+    # "Chat as <name>" rather than "Chat — <name>": the transcript is answered *as* that person,
+    # which is the whole point of the demo, so the heading says the mechanic instead of naming a
+    # place. It also stops every page title from being a label followed by a dash fragment.
+    st.subheader(f"Chat as {info.get('name', user_id)}")
+    st.caption(f"{info.get('title', '')}. Groups {', '.join(user_groups(user_id))}. "
+               "Answers are limited to the documents this person can read right now.")
     docs = authz.documents()
     shown = turns(user_id)
     for turn in shown:
@@ -618,7 +664,7 @@ def page_chat():
         with st.chat_message("assistant"):
             st.markdown(WELCOME)
         if user_id in COMPLIANCE_EXAMPLES:
-            st.caption("Your example questions are audit queries — they are on the "
+            st.caption("This account's example questions are audit queries, so they live on the "
                        "**Compliance → Ask (query_audit)** page.")
         render_examples(user_id, "Searching…")
     else:
@@ -626,8 +672,8 @@ def page_chat():
         if last.get("kind") in ("greeting", "scope"):
             # Greetings and scope questions keep the full suggestion list under them.
             if user_id in COMPLIANCE_EXAMPLES:
-                st.caption("Your example questions are audit queries — they are on the "
-                           "**Compliance → Ask (query_audit)** page.")
+                st.caption("This account's example questions are audit queries, so they live on "
+                           "the **Compliance → Ask (query_audit)** page.")
             render_examples(user_id, "Searching…")
         else:
             # After an agent answer: hint about what to do next, then remaining suggestions.
@@ -638,7 +684,8 @@ def page_chat():
 
 
 def page_admin():
-    st.subheader("Admin — demo state changes")
+    st.subheader("Admin")
+    st.caption("Changes the shared demo state that every visitor sees.")
     st.info(SHARED_STATE_NOTICE)
     st.caption("Each button calls `simulate.py`. State lives in `state/` (git-ignored) so the "
                "committed `data/` files stay pristine.")
@@ -664,7 +711,7 @@ def page_admin():
     st.divider()
     st.markdown("**Audit log**")
     records = audit().records()
-    st.caption(f"{len(records)} records · {len(audit().checkpoints())} signed checkpoints")
+    st.caption(f"{len(records)} records, {len(audit().checkpoints())} signed checkpoints")
     if records:
         st.dataframe([{k: r.get(k) for k in ("seq", "ts", "event", "user_id", "tool",
                                              "returned", "citations", "refused")}
@@ -771,7 +818,7 @@ def page_roi():
 
     st.markdown("#### Measured (from the newest `results/` file)")
     if not results:
-        st.info("No `results/*.agent.json` yet — run `python evaluate_agent.py`.")
+        st.info("No `results/*.agent.json` yet. Run `python evaluate_agent.py`.")
     else:
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Leak rate (Targeted ASR)", f"{measured.get('targeted_asr', float('nan')):.1%}")
@@ -779,9 +826,9 @@ def page_roi():
         cost = measured.get("avg_cost")
         c3.metric("Cost / query", "n/a" if cost is None else f"${cost:.4f}")
         c4.metric("Latency / query", f"{measured.get('avg_seconds', 0) * 1000:.0f} ms")
-        st.caption(f"subset `{subset}` · model `{results.get('model')}` · "
-                   f"{measured.get('n_cases', results.get('n_cases'))} cases · "
-                   f"stamp {results.get('stamp')} · corpus is simulated data")
+        st.caption(f"subset `{subset}`, model `{results.get('model')}`, "
+                   f"{measured.get('n_cases', results.get('n_cases'))} cases, "
+                   f"stamped {results.get('stamp')}. Corpus is simulated data.")
         if subset == "all":
             st.warning("No author-confirmed cases yet, so these are the `all` (internal) numbers — "
                        "confirm the draft cases and rerun before quoting them externally.")
@@ -837,8 +884,9 @@ def page_roi():
 # (../video/src/scenes/OpeningApp.tsx, rendered as ../video/out/opening-v6b.mp4): the card
 # fades and slides in, each tick is drawn as a stroke, the readable count runs from zero to
 # the real number with an ease-out, and then "Welcome, <first name>" arrives with the name on
-# a mint highlight. Timings, colours (#131313 ink, #FFFFFF paper, #F2F7F4 mist, #BEFFCF mint,
-# #E4E7E5 line) and sizes follow the film. The live values — name, title, the readable count
+# a green highlight. Timings and sizes follow the film; the colours do not — the film's pale
+# mint is replaced by the brand green sampled from the Aspire logo, so this screen and the pages
+# behind it are one palette. The live values — name, title, the readable count
 # and whether the audit chain verifies — are passed in from Python, and nothing else is: there
 # is no total anywhere in the block.
 
@@ -854,7 +902,7 @@ _LOGIN_CSS = """
   .login-subtitle { color: #555; font-size: 0.95rem; margin-bottom: 1.2rem; text-align: center; }
   .check-row { font-size: 1.05rem; margin: 0.35rem 0; }
 
-  /* Screen 1: one bordered list of accounts, a row turns mint with a tick when selected. */
+  /* Screen 1: one bordered list of accounts, a row turns green with a tick when selected. */
   div.st-key-account_list {
     max-width: 660px; margin: 0 auto; padding: 0 !important;
     border: 1px solid #E4E7E5; border-radius: 18px; overflow: hidden;
@@ -876,7 +924,12 @@ _LOGIN_CSS = """
   div.st-key-account_list .stButton > button > div {
     flex: 1; justify-content: flex-start !important;
   }
-  div.st-key-account_list .stButton > button:hover { background: #F2F7F4; color: #131313; }
+  /* Hover is the neutral surface, not a pale green. `#F2F7F4` was a leftover from the rejected
+     green-surface era: a tint of the brand green used as a resting/hover *surface*, which is the
+     one thing the palette is built to avoid. It also muddied the meaning of the selected row —
+     if hovering tints a row green and selecting paints it green, green no longer says "selected".
+     Paper to grey keeps green for selection only. */
+  div.st-key-account_list .stButton > button:hover { background: #F4F4F4; color: #131313; }
   .acct-divider { height: 1px; background: #E4E7E5; margin: 0; }
 
   div.st-key-continue_btn .stButton > button {
@@ -884,23 +937,333 @@ _LOGIN_CSS = """
     background: #131313; color: #FFFFFF; font-size: 1.05rem; font-weight: 600;
     transition: background 0.18s ease, color 0.18s ease;
   }
-  div.st-key-continue_btn .stButton > button:hover { background: #BEFFCF; color: #131313; }
+  div.st-key-continue_btn .stButton > button:hover { background: #02D169; color: #131313; }
   div.st-key-continue_btn .stButton > button p { font-weight: 600; }
 </style>
 """
 
 # Appended *inside* the <style> block above (not after it — appended CSS outside the tag would
-# be rendered as visible text) when a row is selected: the row turns mint and a tick is pushed
-# to its right edge, exactly as in the film.
+# be rendered as visible text) when a row is selected: the row turns the brand green and a tick is
+# pushed to its right edge, exactly as in the film. The green is the same value the app's buttons
+# use, so "selected" and "you can act here" are visibly the same colour.
 _SELECTED_ROW_CSS = """
   div.st-key-account___UID__, div.st-key-account___UID__ .stButton > button {
-    background: #BEFFCF !important;
+    background: #02D169 !important;
   }
-  div.st-key-account___UID__ .stButton > button:hover { background: #BEFFCF !important; }
+  div.st-key-account___UID__ .stButton > button:hover { background: #02D169 !important; }
   div.st-key-account___UID__ .stButton > button::after {
     content: "\\2713"; margin-left: auto; padding-left: 16px;
     color: #131313; font-weight: 700; font-size: 1.15rem; line-height: 1;
   }
+"""
+
+# The masthead, and the handful of tokens and the typeface it shares with everything else.
+#
+# This is injected on *every* screen, including the two sign-in ones, which is why it is separate
+# from `_APP_CSS`: the masthead is drawn before a user has been chosen, and a raw `<img>` with no
+# sheet behind it would render at its intrinsic 736px and tear the sidebar open. It also owns the
+# `@font-face` and the `:root` tokens, so both sheets and both screens read one definition.
+#
+# The lockup is the maker's mark. The product name under it is set in Jost, which is the same
+# Futura lineage as the `aspire` wordmark inside that lockup — including the single-storey `a` —
+# so the product reads as part of the same family as the company that makes it. Body copy stays
+# on the system stack, which is what the sign-in screen already used.
+_BRAND_CSS = """
+<style>
+  /* Self-hosted, so a deployment does not depend on a font CDN. Variable weight 400-700, latin
+     subset only, 26 KB, generated into `static/fonts/` and served by Streamlit's static mount.
+     The format hint is plain `woff2`: `woff2-variations` is not a format keyword browsers act on,
+     and a source whose hint does not match is skipped silently, which costs the whole typeface
+     and leaves the page looking like the default one. The weight *range* is what makes it
+     variable. */
+  @font-face {
+    font-family: 'Jost';
+    src: url('/app/static/fonts/jost-latin.woff2') format('woff2');
+    font-weight: 400 700; font-style: normal; font-display: swap;
+  }
+  :root { --ink:#131313; --paper:#FFFFFF; --field:#F4F4F4;
+          /* `--green` is the brand green, sampled out of the Aspire artwork itself by
+             `scripts/make_brand_assets.py`. Two things about it are deliberate. It replaces a
+             pale mint borrowed from the demo film, so the product now matches its own logo. And
+             there is no lighter tint of it anywhere: a tint ramp would just reintroduce the pale
+             green that read as a different, sickly colour when it covered a whole sidebar, so
+             green is always this one value, and always either an action (a button, the send
+             arrow, a link's underline) or a selected state — never a resting surface. */
+          --green:#02D169;
+          --hairline:#E4E7E5; --muted:#6A706C;
+          /* The boundary of a *control*, which is a different job from a divider. `--hairline`
+             is 1.25:1 against paper — right for a card edge or a table rule, where it only has
+             to separate, but too faint for the outline that tells you a button is a button.
+             `--control-edge` is the lightest neutral of the same hue that clears 3:1 on both
+             surfaces controls actually sit on (3.46:1 on paper, 3.15:1 on the grey field), which
+             is what non-text contrast asks of a boundary that carries no other affordance. */
+          --control-edge:#868B88;
+          --brand-font:'Jost', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+  .brand { margin: 0 0 1.15rem; }
+  .brand img { display: block; width: 130px; height: auto; }
+  .brand .product { font-family: var(--brand-font); font-weight: 600; font-size: 1.24rem;
+                    line-height: 1.1; letter-spacing: -0.015em; color: var(--ink);
+                    margin: 0.72rem 0 0; }
+  .brand .promise { color: var(--muted); font-size: 0.78rem; line-height: 1.38;
+                    margin: 0.34rem 0 0; }
+
+  /* The shared-demo dialog. It hangs off the masthead button, so it can be opened *before* a
+     user has been chosen — which is why these rules live here with the tokens rather than in
+     `_APP_CSS`, whose sheet is only injected after the login flow hands over.
+
+     Three cuts, all taken from the measured DOM (`results/_dlg_struct.mjs`): Streamlit's panel
+     is a direct child div of `stDialog` at 24px, one step off the radius ramp, so it comes down
+     to the 18px the other cards use. The scrim is shipped as a pale grey wash that leaves the
+     page behind as loud as the panel; it becomes ink instead, heavy enough to put the page back.
+     And the title is a genuine `h2` inside `section[role=dialog]`, outside `stHeading`, so it
+     would otherwise render in the theme font while every heading around it is set in the brand
+     face. */
+  [data-testid="stDialog"] { background: rgba(19, 19, 19, 0.34); }
+  [data-testid="stDialog"] > div { border-radius: 18px; }
+  [data-testid="stDialog"] h2 { font-family: var(--brand-font); letter-spacing: -0.015em; }
+</style>
+"""
+
+# The masthead itself. The promise line is the one thing that separates this from any other chat
+# box, so it belongs here rather than in a paragraph a visitor has to go looking for. It is kept
+# to a single sentence: at this width a second one costs another two lines of the sidebar.
+_BRAND_BLOCK = """
+<div class="brand">
+  <img src="/app/static/brand/aspire-lockup.png" alt="Aspire">
+  <p class="product">Internal Brain</p>
+  <p class="promise">Answers are limited to what the person signed in can read.</p>
+</div>
+"""
+
+# The skin for everything *behind* the sign-in screen.
+#
+# The sign-in and checking screens are bespoke — ink type on paper, a tinted selection, one black
+# button — and the pages after them were stock Streamlit, so the two halves of the demo did not
+# look like the same product. This sheet carries the same tokens (`--ink`, `--paper`, `--field`,
+# `--green`, the `#E4E7E5` hairline already used by `_LOGIN_CSS`) across the app.
+#
+# `--green` is the *brand* green, `#02D169`, sampled from the Aspire logo itself
+# (`scripts/make_brand_assets.py` reads it out of the artwork). The app used to paint its actions
+# with a pale mint that came from the demo film, so the product did not match its own logo.
+#
+# The division of labour is deliberate. Grey `--field` carries every *surface* (sidebar, info
+# boxes, table header, the question bubble); a large area of pale green stops reading as the same
+# colour the sign-in screen uses for a single selected row. Green is only ever an *action or a
+# mark* — a hovered button, a primary button, the send arrow, the underline of a link, the logo —
+# and it is always the one brand value, with no lighter tint of it anywhere.
+#
+# It is injected only once the login flow has handed over (`_inject_app_css`). Most of it is
+# colour, type weight, radius and borders, but not all of it: three rules move things, and each one
+# is there because a measurement said the default position was wrong. The assistant's avatar is the
+# first of them, and it moves twice: it trades Streamlit's robot for the Aspire mark (at 28px two
+# letters read as an abstract blob), and it is raised 3px, because a 32px tile whose top is flush
+# with a 25.6px first line hangs below the text's optical centre. The other two stretch the citation
+# cards to their column and pin each footnote to the bottom, so a row of cards reads as a grid
+# instead of three piles of different heights. `__INITIALS__` is the one substitution — the
+# signed-in user's initials, the same two letters the sign-in list shows.
+#
+# Not touched, on purpose:
+#   * emoji in headings and icons — that is copy, not styling;
+#   * `st.dataframe`'s grid, which is drawn to a canvas: only its frame is restyled here;
+#   * `.streamlit/config.toml` sets the accent, because radio dots, sliders and focus rings are
+#     painted from `primaryColor` and no stylesheet can reach them.
+_APP_CSS = """
+<style>
+  /* `--ink`, `--paper`, `--field`, `--green`, `--hairline`, `--muted` and the Jost `@font-face`
+     are declared once in `_BRAND_CSS`, which is injected on *every* screen including the sign-in
+     one. This sheet only adds what the pages behind the sign-in need. */
+
+  /* ---- type -------------------------------------------------------------------------- */
+  .stApp { color: var(--ink); }
+  [data-testid="stHeading"] h1, [data-testid="stHeading"] h2,
+  [data-testid="stHeading"] h3, [data-testid="stHeading"] h4 {
+    font-family: var(--brand-font); color: var(--ink); font-weight: 600;
+    letter-spacing: -0.012em; }
+  [data-testid="stHeading"] h1 { font-size: 1.7rem; }
+  [data-testid="stHeading"] h2 { font-size: 1.3rem; }
+  /* Captions were rendering in the body colour, so two dozen of them read as more body text. */
+  [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {
+    color: var(--muted); font-size: 0.82rem; }
+  [data-testid="stMarkdownContainer"] code { border-radius: 6px; padding: 0.08rem 0.32rem; }
+  /* The theme sets the ink and turns the underline on; the green stroke is the sign-in screen's. */
+  [data-testid="stMarkdownContainer"] a { font-weight: 600; text-decoration-thickness: 2px;
+    text-decoration-color: var(--green); text-underline-offset: 3px; }
+  [data-testid="stMarkdownContainer"] a:hover {
+    background: var(--green); text-decoration-color: var(--green); }
+
+  [data-testid="stSidebar"] h1 { font-size: 1.15rem !important; letter-spacing: -0.01em; }
+
+  /* ---- buttons ----------------------------------------------------------------------- */
+  /* The green is the *action* colour — a hovered button, a primary button, the send arrow —
+     not a surface colour. Idle buttons stay on paper with the hairline, and that restraint is
+     what keeps the green meaning "you can act here" instead of becoming wallpaper. */
+  /* `showWidgetBorder` gives them the hairline; the ink edge on hover is the sign-in screen's. */
+  button[data-testid="stBaseButton-secondary"]:hover {
+    background: var(--green) !important; color: var(--ink) !important;
+    border-color: var(--ink) !important; }
+  button[data-testid="stBaseButton-primary"] {
+    background: var(--green); color: var(--ink); border-color: var(--ink); font-weight: 600; }
+  button[data-testid="stBaseButton-primary"]:hover {
+    background: var(--ink); color: var(--green); border-color: var(--ink); }
+
+  /* ---- chat -------------------------------------------------------------------------- */
+  /* The sign-in list introduces people by initials, so the transcript does the same — but the
+     two sides are not twins. The person speaking is a paper chip with ink initials and the
+     hairline; the product answering is the dark tile carrying the Aspire mark. The chip is paper
+     rather than grey on purpose: the question bubble is grey, so a grey chip disappeared into it
+     and the initials read as part of the sentence. */
+  [data-testid="stChatMessageAvatarUser"], [data-testid="stChatMessageAvatarAssistant"] {
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    /* The tile is 32px; the first line of the message is a 25.6px line box. Flush tops therefore
+       leave the tile hanging ~3.2px below the text's optical centre, which is what a reader sees
+       as "the avatar is not lined up with the sentence". Half the difference is the fix, and it
+       was measured from both ends: the probe puts the tile centre at -494 and the line-box and
+       glyph centres at -497, and the reader's own screenshot measures 3.7px. */
+    transform: translateY(-3px); }
+  /* Streamlit wraps the avatar glyph in a `<span>`, and that span is a flex item. Hiding the
+     glyph alone therefore left the wrapper in the flow, still 20px wide inside a 32px tile: the
+     mark was pushed to the right edge and — because wrapper and mark together overflowed the tile
+     — flex shrank the mark from the 19px it asked for to 12px, so `background: center / contain`
+     centred inside a 12px sliver that sat against the corner. Measured, not guessed:
+     `results/_avatar_dump.txt`, where `::after` reports `12pxx19px` next to a `span` at `0,6`.
+
+     The previous round did not catch it because the probe measured the tile's outer edges and the
+     line of text beside them, and on those numbers the tile was aligned. An element can be in the
+     right place and still have the wrong thing drawn inside it, which is what this rule is. */
+  [data-testid="stChatMessageAvatarUser"] > *,
+  [data-testid="stChatMessageAvatarAssistant"] > * { display: none; }
+  [data-testid="stChatMessageAvatarUser"] {
+    background: var(--paper) !important; color: var(--ink) !important;
+    border: 1px solid var(--hairline);
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; }
+  /* `flex: none` on both: the replacement is the only thing left in the tile and must not be
+     treated as a compressible flex item, which is how it lost 7px of width the first time. */
+  [data-testid="stChatMessageAvatarUser"]::after { content: "__INITIALS__"; flex: none; }
+  [data-testid="stChatMessageAvatarAssistant"] { background: var(--ink) !important; }
+  [data-testid="stChatMessageAvatarAssistant"]::after {
+    content: ""; display: block; flex: none; width: 19px; height: 19px;
+    background: url('/app/static/brand/aspire-mark.png') center / contain no-repeat; }
+  /* `layout="wide"` lets a transcript run the full width of the window, which put roughly ninety
+     characters on a line — past the point where the eye loses its place on the return sweep. The
+     comfortable band is 45-75 characters, with about 66 the ideal.
+
+     The cap was first written as `66ch`, which is the unit the guidance recommends, and it was
+     wrong here: `ch` is the advance of the "0" glyph *in the element it is applied to*, and this
+     cap is on the row, not on the paragraph inside it. The row carries the chat chrome's own font
+     context and its own padding, so `66ch` resolved to a 453px text column and the transcript
+     measured 56 characters — under the ideal and visibly cramped. The unit has to be read against
+     the element that owns the text, so the cap is a definite length, and that length was set by
+     measuring: `42rem` gave 76 characters, `66ch` gave 56, and `37rem` gives 64 — the ideal is
+     about 66, and 64 sits on it. (This is the guidance's own caveat about `ch` — it varies by face
+     and size, so it has to be tested against real content rather than trusted.) The cap is on the
+     *row* rather than on the content because the grey question bubble is painted on the row:
+     capping only the content left the bubble full width with the sentence stopping mid-way. */
+  [data-testid="stChatMessage"] { border-radius: 18px; max-width: 37rem; }
+  /* The question keeps a tinted bubble; the answer stays on paper so citations carry the eye.
+     Grey, not green: green is the *action* colour and a whole surface of it read as a different,
+     sickly shade. */
+  [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+    background: var(--field); }
+  [data-testid="stChatInput"] textarea { color: var(--ink); }
+  /* The send arrow is the one green element that is always on screen: it is grey while the box
+     is empty and turns green the moment there is something to send. */
+  button[data-testid="stChatInputSubmitButton"] {
+    background: var(--green); color: var(--ink); border-radius: 10px; }
+  button[data-testid="stChatInputSubmitButton"]:hover {
+    background: var(--ink); color: var(--green); }
+  button[data-testid="stChatInputSubmitButton"][disabled] {
+    background: var(--field); color: var(--muted); }
+
+  /* ---- cards: citations, expanders, metrics ------------------------------------------ */
+  /* Radii are a ramp, not one value: 12px for a control and for a bordered container, 14px for an
+     expander, 18px for a transcript row, 6px for inline code. Using one radius for everything is
+     what makes a page read as a pile of identical rounded boxes.
+
+     Read the rung you mean, not the rung you sampled. An expander has two elements that could
+     plausibly own its corner, and only one of them does: `summary` measures 12px, `details`
+     measures 14px — and `details` is the one carrying the 0.667px border, so 14px is what you see.
+     A capability probe that samples `summary` alone will report the expander as a control and
+     invite you to "fix" a rule that was already right (`results/_cards_dump.txt` prints both).
+
+     A rule here used to give `stVerticalBlockBorderWrapper` an 18px radius, so a citation card
+     would rank above a control. That one really was dead: dumping every testid the running app
+     emits shows this build of Streamlit has no such element — a `st.container(border=True)` is a
+     plain `stVerticalBlock` that happens to carry a border, which is also why the citation-card
+     rules below address the card by its position in the column. The cards keep the theme's
+     measured 12px. */
+  [data-testid="stExpander"] details { border-radius: 14px; }
+  [data-testid="stExpander"] summary { font-weight: 600; }
+  [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] p { color: var(--muted); }
+
+  /* ---- citation cards: a row, not three piles ------------------------------------------ */
+  /* `st.columns` already gives every column in a row the same height — that is its job — but the
+     card inside was free to be its own height, so a four-line title made one card taller than the
+     two beside it and the three "Open in …" links sat 39px apart. Two rules fix it: the card fills
+     the column it sits in, and the footnote is pushed to the bottom of the card, so a card whose
+     title wrapped once less gets the slack *above* its footnote rather than under it. Cards in a
+     row then share a top edge, a bottom edge and a link line.
+
+     The chain below is Streamlit's real DOM, read off the page rather than assumed (there is no
+     `stVerticalBlockBorderWrapper` in 1.65; `st.container(border=True)` is a plain
+     `stVerticalBlock` that happens to carry a border, which is why the card is addressed through
+     its position in the column instead): stColumn › stVerticalBlock › stLayoutWrapper ›
+     stVerticalBlock(the card) › stElementContainer(the footnote). It is scoped to the transcript
+     so no other page's columns change shape, and it is the first rule in this sheet that moves
+     anything other than the avatar — hence the note in the file header, which used to claim this
+     sheet stayed away from layout. */
+  [data-testid="stChatMessageContent"] [data-testid="stColumn"] {
+    display: flex; flex-direction: column; }
+  [data-testid="stChatMessageContent"] [data-testid="stColumn"] > [data-testid="stVerticalBlock"],
+  [data-testid="stChatMessageContent"] [data-testid="stColumn"] > [data-testid="stVerticalBlock"]
+    > [data-testid="stLayoutWrapper"] { flex: 1 1 auto; }
+  [data-testid="stChatMessageContent"] [data-testid="stColumn"] > [data-testid="stVerticalBlock"]
+    > [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"]
+    > [data-testid="stElementContainer"]:nth-child(2) { margin-top: auto; }
+
+  /* ---- control boundaries ------------------------------------------------------------ */
+  /* The hairline is right for a divider and too faint for a control. On paper it resolves to
+     1.25:1 — at that weight a bordered button stops reading as a button at all, which is what
+     the zoomed comparison showed. Only the *interactive* boundaries move to `--control-edge`;
+     card edges, dividers and the table grid keep the hairline, so the extra weight lands on the
+     things you can actually press and the page does not get heavier overall. */
+  [data-baseweb="input"], [data-baseweb="select"] > div, [data-baseweb="base-input"],
+  [data-testid="stTextInputRootElement"], [data-testid="stNumberInputContainer"] {
+    border-color: var(--control-edge); }
+  button[data-testid="stBaseButton-secondary"] { border-color: var(--control-edge); }
+  [data-testid="stChatInput"] [data-baseweb="textarea"],
+  [data-testid="stChatInput"] > div { border-color: var(--control-edge); }
+
+  /* ---- data: numbers that line up ----------------------------------------------------- */
+  /* Tabular figures everywhere digits are meant to be compared — the audit answers, the ROI
+     metrics and the cost figures all put numbers in columns, and proportional digits make a
+     column of numbers look ragged. `st.dataframe` is a canvas and stays out of reach; these are
+     the HTML surfaces. */
+  [data-testid="stMetricValue"], [data-testid="stMetricLabel"],
+  [data-testid="stMarkdownContainer"] table td, [data-testid="stMarkdownContainer"] table th,
+  [data-testid="stMarkdownContainer"] code {
+    font-variant-numeric: tabular-nums; }
+  [data-testid="stMarkdownContainer"] table th { text-align: left; }
+
+  /* ---- motion ------------------------------------------------------------------------- */
+  /* Streamlit ships every state change as an instant swap: the resolved transition on a button
+     is `all 0s`, so a hover goes from paper to green with no interval at all, which reads as a
+     flicker rather than a response. 180ms sits in the 150-300ms band the guidance gives. Only
+     colour and shadow are named, so nothing here can trigger layout, and the whole block is
+     switched off for anyone who has asked for reduced motion. */
+  button, [data-testid="stMarkdownContainer"] a,
+  [data-baseweb="input"] > div, [data-baseweb="select"] > div,
+  [data-testid="stChatInput"] textarea, [data-testid="stExpander"] summary,
+  [data-testid="stChatMessageAvatarUser"] {
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease,
+                box-shadow 0.18s ease; }
+  @media (prefers-reduced-motion: reduce) {
+    button, [data-testid="stMarkdownContainer"] a,
+    [data-baseweb="input"] > div, [data-baseweb="select"] > div,
+    [data-testid="stChatInput"] textarea, [data-testid="stExpander"] summary,
+    [data-testid="stChatMessageAvatarUser"] { transition: none; }
+  }
+</style>
 """
 
 # The animated checking screen. `%` is not used for substitution — CSS percentages would fight
@@ -912,7 +1275,10 @@ _CHECKING_HTML = """
 <head>
 <meta charset="utf-8">
 <style>
-  :root { --ink:#131313; --paper:#FFFFFF; --mist:#F2F7F4; --mint:#BEFFCF;
+  /* The same two values the app uses: ink on paper, and the one brand green — sampled from the
+     Aspire logo rather than the film's pale mint, so the checking screen and the pages behind it
+     cannot drift apart. `--mist` used to be declared here and was never referenced. */
+  :root { --ink:#131313; --paper:#FFFFFF; --green:#02D169;
           --line:#E4E7E5; --soft:rgba(19,19,19,0.55); }
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; background:transparent; }
@@ -948,7 +1314,7 @@ _CHECKING_HTML = """
                              stroke-dasharray:26; stroke-dashoffset:26; }
   .mark .tick { stroke:var(--ink); stroke-width:3; }
   .mark .bang { stroke:#C0392B; stroke-width:3; }
-  .row.done .mark { background:var(--mint); border-color:var(--ink); }
+  .row.done .mark { background:var(--green); border-color:var(--ink); }
   .row.done .mark .tick { animation: draw .42s cubic-bezier(.65,0,.35,1) both; }
   .row.failed .mark { background:#FFE6E3; border-color:#C0392B; }
   .row.failed .mark .tick { display:none; }
@@ -963,7 +1329,7 @@ _CHECKING_HTML = """
              letter-spacing:-0.03em; opacity:0; transform:translateY(14px);
              transition:opacity .5s ease, transform .5s cubic-bezier(.65,0,.35,1); }
   .welcome.in { opacity:1; transform:none; }
-  .hl { background-image:linear-gradient(var(--mint),var(--mint));
+  .hl { background-image:linear-gradient(var(--green),var(--green));
         background-repeat:no-repeat; background-position:0 55%; background-size:0% 86%;
         border-radius:12px; padding:0 14px;
         transition:background-size .5s cubic-bezier(.65,0,.35,1) .08s; }
@@ -1101,26 +1467,55 @@ def _login_users():
     return [u for u in authz.directory().get("users", {}) if not u.startswith("persona_")]
 
 
+def _account_chip_css(users):
+    """One rule per account row, so the initials live in a chip instead of in the button label.
+
+    A button label carries a single style, so `JD · Jamie Doe — Backend Engineer` read as three
+    facts strung together rather than a person with a role. Drawing the chip as a `::before` also
+    keeps the `::after` free for the tick that marks the selected row.
+
+    The whole rule is repeated per user rather than shared behind a wildcard, for two reasons that
+    both bite silently: the list container's own key is `account_list`, which also starts with
+    `account_`, so a `[class*="st-key-account_"]` selector would prepend the box to the list as
+    well; and a shared rule would out-specify the per-user `content` once its `:not(...)` is
+    counted, leaving every chip empty.
+    """
+    rules = []
+    for uid in users:
+        mark = initials(user_info(uid).get("name", uid))
+        rules.append(
+            f'  div.st-key-account_{uid} .stButton > button::before {{\n'
+            f'    content: "{mark}";\n'
+            f'    flex: 0 0 36px; width: 36px; height: 36px; border-radius: 10px;\n'
+            f'    background: #FFFFFF; color: #131313; border: 1px solid #E4E7E5;\n'
+            f'    display: flex; align-items: center; justify-content: center;\n'
+            f'    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em;\n'
+            f'    margin-right: 16px;\n'
+            f'  }}')
+    return "\n".join(rules)
+
+
 def render_signin_screen():
     """Screen 1 — choose a demo account, as one list of rows.
 
     Native widgets, styled with injected CSS to match the film's reference: one bordered list,
-    a row that turns mint with a tick when selected, and a black rounded "Continue as <name>"
-    button below it.
+    a row that turns green with a tick when selected, and a black rounded "Continue as <name>"
+    button below it. The initials are a chip drawn by `_account_chip_css`, not part of the label.
     """
     choice = st.session_state.get("login_choice")
-    css = _LOGIN_CSS
+    users = _login_users()
+
+    css = _LOGIN_CSS.replace("</style>", _account_chip_css(users) + "</style>")
     if choice:
         css = css.replace("</style>", _SELECTED_ROW_CSS.replace("__UID__", choice) + "</style>")
     st.markdown(css, unsafe_allow_html=True)
 
     st.markdown('<div class="login-title">Sign in to Internal Brain</div>',
                 unsafe_allow_html=True)
-    st.markdown('<div class="login-subtitle">Each demo account can read a different set of '
-                'documents — the same question may be answered for one colleague and refused '
-                'for another.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="login-subtitle">LumenPay is a simulated company. Each demo account '
+                'can read a different set of documents, so the same question is answered for one '
+                'colleague and refused for another.</div>', unsafe_allow_html=True)
 
-    users = _login_users()
     with st.container(key="account_list"):
         for i, uid in enumerate(users):
             info = user_info(uid)
@@ -1129,8 +1524,7 @@ def render_signin_screen():
             if i:
                 st.markdown('<div class="acct-divider"></div>', unsafe_allow_html=True)
             with st.container(key=f"account_{uid}"):
-                if st.button(f"{initials(name)}  ·  {name} — {title}", key=f"pick_{uid}",
-                             width="stretch"):
+                if st.button(f"{name} — {title}", key=f"pick_{uid}", width="stretch"):
                     st.session_state["login_choice"] = uid
                     st.rerun()
 
@@ -1237,14 +1631,56 @@ def _clear_trailing_elements(count=16):
 
 # ------------------------------------------------------------------------------ shell
 
+def _inject_app_css(user_id):
+    """Skin the signed-in app so the pages match the sign-in screen they follow.
+
+    Called only after `handle_login_flow` has handed over. The sign-in and checking screens
+    carry their own stylesheets, and they are rendered with this one absent — otherwise the
+    generic button and alert rules here would fight the bespoke list and the black Continue
+    button. One substitution: the user's initials, for the transcript avatars.
+    """
+    name = user_info(user_id).get("name", "")
+    st.markdown(_APP_CSS.replace("__INITIALS__", initials(name)), unsafe_allow_html=True)
+
+
+@st.dialog("Shared demo", icon=":material/groups:")
+def _shared_demo_dialog():
+    """The shared-instance warning, as a modal rather than a permanent sidebar box.
+
+    The box cost seven lines of the navigation column on every screen, for something a visitor
+    reads once. The trigger sits exactly where the box used to be, so the warning is not hidden
+    behind a menu — it is one click away instead of always on screen.
+    """
+    st.markdown(SHARED_STATE_NOTICE)
+    st.markdown(
+        "Only the **Admin** page changes anything: push the runbook update, revoke a permission, "
+        "tamper with an audit record, truncate the log. `data/` and `logs/` are committed; the "
+        "working copy lives in `state/`, which is git-ignored."
+    )
+    st.caption("An instance nobody has touched for a while resets itself when the next visitor "
+               "arrives.")
+    if st.button("Got it", type="primary", width="stretch"):
+        st.session_state["shared_demo_open"] = False
+        st.rerun()
+
+
 def sidebar():
     with st.sidebar:
-        st.title("🔐 Internal Brain")
-        st.caption("LumenPay — permission-aware internal assistant (simulated company)")
-        st.info(SHARED_STATE_NOTICE, icon="👥")
+        # The masthead goes up first, and on the sign-in screens too — which is exactly why its
+        # stylesheet is injected here instead of with `_APP_CSS`. An unstyled `<img>` would render
+        # at its intrinsic 736px and tear the sidebar open before the login flow has finished.
+        st.markdown(_BRAND_CSS, unsafe_allow_html=True)
+        st.markdown(_BRAND_BLOCK, unsafe_allow_html=True)
+        # The shared-instance warning lives in a dialog. The flag is set here and acted on in
+        # `main()` rather than opening the dialog on the spot: Streamlit re-runs the whole script
+        # on every interaction inside a dialog, so the flag has to survive that re-run until the
+        # visitor acknowledges it, and it can only be opened from the top level of the script.
+        if st.button("Shared demo", icon=":material/groups:", key="shared_demo_notice",
+                     width="stretch"):
+            st.session_state["shared_demo_open"] = True
         outcome = st.session_state.get("auto_reset") or {}
         if outcome.get("reset"):
-            st.caption(f"♻️ Shared demo state was reset when you arrived — {outcome['reason']}, "
+            st.caption(f":material/refresh: Shared demo state was reset when you arrived — "
                        "so nothing another visitor changed is left over. The reset is in the "
                        "audit log as a `state_reset` admin event.")
 
@@ -1273,7 +1709,8 @@ def sidebar():
                          format_func=lambda u: labels.get(u, u))
 
         info = user_info(st.session_state.user)
-        st.caption(f"groups: {', '.join(info.get('groups', []))} · employment: {info.get('employment', '')}")
+        st.caption(f"Groups {', '.join(info.get('groups', []))}. "
+                   f"Employment {info.get('employment', '')}.")
         groups = user_groups(st.session_state.user)
         pages = ["Chat", "Admin"] + (["Compliance"] if "compliance_officer" in groups else []) + ["ROI"]
         page = st.radio("Page", pages, key="page")
@@ -1290,17 +1727,26 @@ def sidebar():
 
 
 def main():
-    st.set_page_config(page_title="Internal Brain — LumenPay", page_icon="🔐", layout="wide")
+    # The tab carries the mark, so the browser tab is branded too. An absolute path computed from
+    # this file, because `streamlit run` does not guarantee the working directory.
+    st.set_page_config(
+        page_title="Internal Brain — LumenPay",
+        page_icon=os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "static", "brand", "favicon.png"),
+        layout="wide")
     ensure_demo_history()          # once per instance: seed the audit history if logs/ is empty
     if first_render_of_a_browser_session():
         # After the seeding, so the reset event lands in a log that exists.
         st.session_state.auto_reset = auto_reset_if_idle()
     page = sidebar()
+    if st.session_state.get("shared_demo_open"):
+        _shared_demo_dialog()
     if login_flow_enabled() and handle_login_flow():
         return
     if st.session_state.get("user") is None:
         st.error("No demo users found in data/directory.json.")
         return
+    _inject_app_css(st.session_state.user)
     {"Chat": page_chat, "Admin": page_admin, "Compliance": page_compliance,
      "ROI": page_roi}[page]()
 

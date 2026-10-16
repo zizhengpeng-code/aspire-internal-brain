@@ -1,0 +1,92 @@
+== starting app on 8503 ==
+app healthy after 1s
+== running: C:/Users/Administrator/.workbuddy/binaries/node/versions/22.22.2-6/node.exe results/layout-probe.mjs ==
+--- testids present in this build ---
+stChatInput
+stChatInputSubmitButton
+stChatInputTextArea
+stChatMessage
+stChatMessageAvatarAssistant
+stChatMessageAvatarUser
+stChatMessageContent
+stColumn
+stMarkdown
+stMarkdownContainer
+stVerticalBlock
+
+--- last chat message, as the browser lays it out ---
+div[stChatMessage].stChatMessage.st-emotion-cache-17gu3bp  y=-526..806 w=592
+  div[stChatMessageAvatarAssistant].st-emotion-cache-1krivcf.exttvjz3  y=-513..-481 w=32
+    span.st-emotion-cache-leahp2.eafbkhs2  y=0..0 w=0
+      span[stIconMaterial].st-emotion-cache-1c9yjad.e1vmumty0  y=0..0 w=0 "smart_toy"
+  div[stChatMessageContent].st-emotion-cache-mx0wst.exttvjz1  y=-510..790 w=536
+    div[stVerticalBlock].stVerticalBlock.st-emotion-cache-1bnbo98  y=-510..790 w=536
+      div[stElementContainer].stElementContainer.element-container  y=-510..236 w=536
+        div[stMarkdown].stMarkdown  y=-510..236 w=536
+          div.st-emotion-cache-k2h9z6.e1o1x6gp2  y=-510..236 w=536
+            div[stMarkdownContainer].st-emotion-cache-1fjlq2p.epcrwu50  y=-510..252 w=536
+              p  y=-510..-484 w=536 "Here's what I found:"
+              p  y=-468..-442 w=536
+              p  y=-426..-145 w=536 "The project is tracked as DBMIG-1,"
+              p  y=-129..-103 w=536
+              p  y=-87..66 w=536 "Yes — one blocker was raised in th"
+              p  y=82..236 w=536 "This corresponds to Jira issue DBM"
+      div[stLayoutWrapper].st-emotion-cache-18kf3ut.e6x7pi5  y=252..485 w=536
+        div[stHorizontalBlock].stHorizontalBlock.st-emotion-cache-1a7w0so  y=252..485 w=536
+          div[stColumn].stColumn.st-emotion-cache-1t1urhf  y=252..485 w=168
+            div[stVerticalBlock].stVerticalBlock.st-emotion-cache-1bnbo98  y=252..485 w=168
+              div[stLayoutWrapper].st-emotion-cache-18kf3ut.e6x7pi5  y=252..485 w=168
+          div[stColumn].stColumn.st-emotion-cache-1t1urhf  y=252..485 w=168
+            div[stVerticalBlock].stVerticalBlock.st-emotion-cache-1bnbo98  y=252..485 w=168
+              div[stLayoutWrapper].st-emotion-cache-18kf3ut.e6x7pi5  y=252..485 w=168
+          div[stColumn].stColumn.st-emotion-cache-1t1urhf  y=252..485 w=168
+            div[stVerticalBlock].stVerticalBlock.st-emotion-cache-1bnbo98  y=252..485 w=168
+              div[stLayoutWrapper].st-emotion-cache-18kf3ut.e6x7pi5  y=252..485 w=168
+      div[stLayoutWrapper].st-emotion-cache-18kf3ut.e6x7pi5  y=501..734 w=536
+        div[stHorizontalBlock].stHorizontalBlock.st-emotion-cache-1a7w0so  y=501..734 w=536
+          div[stColumn].stColumn.st-emotion-cache-1t1urhf  y=501..734 w=168
+            div[stVerticalBlock].stVerticalBlock.st-emotion-cache-1bnbo98  y=501..734 w=168
+              div[stLayoutWrapper].st-emotion-cache-18kf3ut.e6x7pi5  y=501..734 w=168
+          div[stColumn].stColumn.st-emotion-cache-1t1urhf  y=501..734 w=168
+            div[stVerticalBlock].stVerticalBlock.st-emotion-cache-1bnbo98  y=501..734 w=168 ""
+          div[stColumn].stColumn.st-emotion-cache-1t1urhf  y=501..734 w=168
+            div[stVerticalBlock].stVerticalBlock.st-emotion-cache-1bnbo98  y=501..734 w=168 ""
+      div[stLayoutWrapper].st-emotion-cache-18kf3ut.e6x7pi5  y=750..790 w=536
+        div[stExpander].stExpander.st-emotion-cache-8atqhb  y=750..790 w=536
+          details.st-emotion-cache-1swtht5.e1u8u9eb2  y=750..790 w=536
+            summary.st-emotion-cache-lzfhug.e1u8u9eb10  y=751..789 w=535
+              span.st-emotion-cache-nwb5ao.e1u8u9eb3  y=759..781 w=511
+            div[stExpanderDetails].st-emotion-cache-1agdrr6.e1u8u9eb11  y=789..1126 w=535
+              div[stVerticalBlock].stVerticalBlock.st-emotion-cache-1bnbo98  y=806..1110 w=503
+
+--- avatar vs first line (2 messages) ---
+  user       avatar 32px y=-612..-580 (mid -596)
+             line   25.6px   y=-609..-583 (mid -596)   font 16px
+             glyphs -607..-585 (mid -596)
+             line-box centre is -0.20000000000004547px vs avatar centre · glyph centre 0px
+  assistant  avatar 32px y=-513..-481 (mid -497)
+             line   25.6px   y=-510..-484 (mid -497)   font 16px
+             glyphs -508..-486 (mid -497)
+             line-box centre is -0.19999999999998863px vs avatar centre · glyph centre 0px
+
+--- citation cards (4) — scoped inside stChatMessage ---
+  #  card y          h    radius   title  meta   link   meta lines  meta text
+  0   252..485    233     12px    268    386    446        2      jira:DBMIG 2026-10-05
+  1   252..485    233     12px    268    386    446        2      confluence:eng 2026-09-30
+  2   252..485    233     12px    268    386    446        2      slack:#db-migration 2026-10-08
+  3   501..734    233     12px    517    635    695        2      jira:DBMIG 2026-10-08
+
+  row 0: heights 233, 233, 233 → spread 0px
+           tops    252, 252, 252 → spread 0px
+           bottoms 485, 485, 485 → spread 0px
+           meta    386, 386, 386 → spread 0px
+           links   446, 446, 446 → spread 0px
+           meta line counts 2, 2, 2
+
+  row 1: heights 233 → spread 0px
+           tops    501 → spread 0px
+           bottoms 734 → spread 0px
+           meta    635 → spread 0px
+           links   695 → spread 0px
+           meta line counts 2
+reaped pid 20364 still on 8503

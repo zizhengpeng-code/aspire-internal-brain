@@ -1,0 +1,12 @@
+== starting app on 8503 ==
+app healthy after 1s
+== running: C:/Users/Administrator/.workbuddy/binaries/node/versions/22.22.2-6/node.exe results/layout-probe.mjs ==
+--- avatar vs first line of text (2 messages) ---
+  user       avatar 32px at y=-609..-577 · first line y=-609..-558
+             top offset 0px, mid offset 10px  (tops flush)
+  assistant  avatar 32px at y=-510..-478 · first line y=-510..-484
+             top offset 0px, mid offset -3px  (tops flush)
+
+--- citation cards (0) ---
+  #  card y        card h  title  meta   link   link text
+reaped pid 28460 still on 8503
