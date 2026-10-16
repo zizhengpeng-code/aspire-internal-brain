@@ -5,8 +5,8 @@ end-to-end prototype of an internal assistant that answers natural-language ques
 four source systems, **only** from documents the signed-in user is allowed to read at that
 moment, cites every factual claim, and keeps a tamper-evident, queryable audit trail.
 
-**Live demo:** <https://edbbab97066b494494ad4b8c8f357992.sg2.agentos-app.run> (Tencent Cloud,
-Singapore). It is one shared instance: sign in as any demo user from the sidebar, and press
+**Live demo:** <https://permission-aware-kb.app.workbuddy.host> (Tencent Cloud). It is one
+shared instance: sign in as any demo user, and press
 **Reset demo state** on the Admin page after trying the Admin actions. (Each deployment is
 handed a fresh hostname — the sandbox is reused, the public URL is not — so treat the link as
 per-deployment rather than permanent.)
@@ -596,9 +596,18 @@ the scripted models and stamp every report with the model name.
 ### 5.1 The hosted public demo
 
 The app is deployed as a public link — a Tencent Cloud sandbox behind a gateway, started by
-`start.py` (which pins `--server.websocketPingInterval 20`, because a tab that sits idle long
-enough for the gateway to drop its WebSocket comes back as "Please wait…") — so the judges can
-drive it themselves. Strangers share **one** instance, so seven things are handled explicitly:
+`start.py`, so the judges can drive it themselves. Two flags there are load-bearing.
+`--server.websocketPingInterval 20` is insurance against a tab that sits idle long enough for the
+gateway to drop its WebSocket, which comes back as "Please wait…". `--server.corsAllowedOrigins`
+is less obvious and more important: the gateway terminates TLS and then forwards the request to
+the sandbox with a **local** `Host` header, while Streamlit decides whether a WebSocket upgrade is
+cross-origin by comparing the browser's `Origin` with that `Host`. Because the forwarded `Host` is
+no longer the public one, the browser's own origin looks cross-origin, Streamlit answers `403` on
+`/_stcore/stream`, and the page paints but never connects — which is exactly what the first
+deployment of this app did. Listing the deployment's own origin is the remedy Streamlit itself
+recommends, and it stays narrow: every other origin is still refused. `PUBLIC_ORIGINS`
+(space-separated) overrides the default when a deployment is handed a new hostname. Strangers
+share **one** instance, so seven things are handled explicitly:
 
 - **A welcome, and a way in.** The chat page opens with a short English introduction: what the
   assistant answers from, and that the answer is scoped to the person signed in. Under it are
@@ -728,6 +737,15 @@ mmdc -i docs/architecture.mmd -o docs/architecture.svg -b white
   until the run ends, which would leave the sign-in list dimmed under the animation). It buys a
   first impression that matches the project's own film instead of a text swap, and it sits
   behind `LOGIN_FLOW`, so tests and local runs never pay for it.
+- **Trusting the deployment's own origin, because the gateway rewrites `Host`.** Streamlit's
+  WebSocket check is same-origin first and allowlist second, and the hosting gateway forwards to
+  the sandbox with a *local* `Host`, so the app's own public origin has to be named in
+  `--server.corsAllowedOrigins` or the socket is refused and the page never connects. That is one
+  extra trusted origin beyond same-origin, deliberately chosen over the blunt fix most proxy
+  guides suggest, `--server.enableCORS=false`, which would accept *any* origin. The list is
+  per-deployment and overridable (`PUBLIC_ORIGINS`), and nothing else about the trust boundary
+  moves: the model, the guard, the per-request authorization check and the audit log are
+  untouched, and a foreign origin is still refused.
 
 ## 7. Residual risks
 
