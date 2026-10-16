@@ -12,6 +12,9 @@ tools/
 # captured logs). The probe scripts themselves are committed; only what they
 # print is not.
 results/*.log
+results/*.txt
+results/runbook-repro-*
+results/scenario-check-*
 results/_icontest/
 results/_rules/
 results/live/
