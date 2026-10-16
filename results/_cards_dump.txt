@@ -1,0 +1,44 @@
+== starting app on 8503 ==
+app healthy after 1s
+== running: C:/Users/Administrator/.workbuddy/binaries/node/versions/22.22.2-6/node.exe results/_cards_dump.mjs ==
+div[stColumn].stColumn.st-emotion-cache-1t1urhf  y=252..485 h=233 w=168 disp=flex alignItems=normal border=0px pad=0px/0px gap=normal
+  div[stVerticalBlock].stVerticalBlock.st-emotion-cache-1bnbo98  y=252..485 h=233 w=168 disp=flex alignItems=stretch border=0px pad=0px/0px gap=16px
+    div[stLayoutWrapper].st-emotion-cache-18kf3ut.e6x7pi5  y=252..485 h=233 w=168 disp=flex alignItems=normal border=0px pad=0px/0px gap=normal
+      div[stVerticalBlock].stVerticalBlock.st-emotion-cache-5lgsw9  y=252..485 h=233 w=168 disp=flex alignItems=start border=0.666667px pad=15px/15px gap=16px
+        div[stElementContainer].stElementContainer.element-container  y=268..370 h=102 w=137
+          div[stMarkdown].stMarkdown  y=268..370 h=102 w=137
+            div.st-emotion-cache-k2h9z6.e1o1x6gp2  y=268..370 h=102 w=137 disp=flex alignItems=center border=0px pad=0px/0px gap=normal
+              div[stMarkdownContainer].st-emotion-cache-1fjlq2p.epcrwu50  y=268..386 h=118 w=137
+                p  y=268..370 h=102 w=137
+                  span  y=268..293 h=26 w=16 "confirmation_number"
+                  strong  y=270..368 h=98 w=117 "[E01] DBMIG-1 Epic: Ledger DB migration "
+        div[stElementContainer].stElementContainer.element-container  y=386..428 h=42 w=137
+          div[stMarkdown].stMarkdown  y=386..428 h=42 w=137
+            div.st-emotion-cache-k2h9z6.e1o1x6gp2  y=386..428 h=42 w=137 disp=flex alignItems=center border=0px pad=0px/0px gap=normal
+              div[stCaptionContainer].st-emotion-cache-qmh256.epcrwu50  y=386..444 h=58 w=137
+                p  y=386..428 h=42 w=137
+                  br  y=387..405 h=17 w=0 ""
+        div[stElementContainer].stElementContainer.element-container  y=444..470 h=26 w=137
+          div[stMarkdown].stMarkdown  y=444..470 h=26 w=137
+            div.st-emotion-cache-k2h9z6.e1o1x6gp2  y=444..470 h=26 w=137 disp=flex alignItems=center border=0px pad=0px/0px gap=normal
+              div[stMarkdownContainer].st-emotion-cache-1fjlq2p.epcrwu50  y=444..486 h=42 w=137
+                p  y=444..470 h=26 w=137
+                  a  y=446..467 h=21 w=79 "Open in jira"
+
+--- all testids ---
+portal, stApp, stAppDeployButton, stAppScrollToBottomContainer, stAppViewContainer, stBaseButton-header, stBaseButton-headerNoPadding, stBaseButton-secondary, stBottom, stBottomBlockContainer, stButton, stCaptionContainer, stChatInput, stChatInputSubmitButton, stChatInputTextArea, stChatMessage, stChatMessageAvatarAssistant, stChatMessageAvatarUser, stChatMessageContent, stColumn, stElementContainer, stExpander, stExpanderDetails, stHeader, stHeaderActionElements, stHeading, stHeadingWithActionElements, stHorizontalBlock, stIconMaterial, stLayoutWrapper, stLogoSpacer, stMainBlockContainer, stMainMenu, stMainMenuButton, stMarkdown, stMarkdownContainer, stRadio, stRadioGroup, stRadioOption, stScreencast, stSelectbox, stSidebar, stSidebarCollapseButton, stSidebarContent, stSidebarHeader, stSidebarResizeHandle, stSidebarUserContent, stToolbar, stToolbarActions, stVerticalBlock, stWidgetLabel
+
+--- what each rung of the radius ramp actually paints ---
+[data-testid="stChatMessage"]                  radius 18px   border 0px      bg rgb(244, 244, 244)     shadow none
+[data-testid="stExpander"]                     radius 0px    border 0px      bg rgba(0, 0, 0, 0)       shadow none
+[data-testid="stExpander"] details             radius 14px   border 0.666667px bg rgba(0, 0, 0, 0)       shadow none
+[data-testid="stExpander"] summary             radius 12px   border 0px      bg rgba(0, 0, 0, 0)       shadow none
+[data-testid="stChatMessageContent"] [data-testid="stVerticalBlock"] radius 0px    border 0px      bg rgba(0, 0, 0, 0)       shadow none
+
+--- same, after opening the expander ---
+[data-testid="stChatMessage"]                  radius 18px   border 0px      bg rgb(244, 244, 244)     shadow none
+[data-testid="stExpander"]                     radius 0px    border 0px      bg rgba(0, 0, 0, 0)       shadow none
+[data-testid="stExpander"] details             radius 14px   border 0.666667px bg rgba(0, 0, 0, 0)       shadow none
+[data-testid="stExpander"] summary             radius 12px   border 0px      bg rgb(250, 250, 250)     shadow none
+[data-testid="stChatMessageContent"] [data-testid="stVerticalBlock"] radius 0px    border 0px      bg rgba(0, 0, 0, 0)       shadow none
+reaped pid 4108 still on 8503
