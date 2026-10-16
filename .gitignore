@@ -7,3 +7,17 @@ index/
 .cache/
 state/
 tools/
+
+# Throwaway output of the layout probes under results/ (screenshots, CDP dumps,
+# captured logs). The probe scripts themselves are committed; only what they
+# print is not.
+results/*.log
+results/_icontest/
+results/_rules/
+results/live/
+results/live5/
+results/motion/
+results/ui/
+.agents/
+.claude/
+skills-lock.json
