@@ -4,8 +4,8 @@ Five things make the app safe to hand to strangers, and all of them are asserted
 the real Streamlit script (headless AppTest, no browser; the one test that asks a question
 pins the scripted `fake` model, so no API call is made):
 
-* the shared-state notice is shown in the sidebar and on the Admin page, because every
-  visitor mutates the same instance;
+* the shared-state notice is one click from the sidebar and stays inline on the Admin page,
+  because every visitor mutates the same instance;
 * once the per-session question budget is spent the chat input is replaced by a polite
   notice, so no model call happens;
 * a greeting is answered by the UI itself — no model call, no audit record, no question
@@ -114,11 +114,51 @@ class RuntimeFilesUntouched(unittest.TestCase):
 
 @unittest.skipUnless(AppTest, "streamlit not installed")
 class SharedStateNotice(EnvBase):
-    def test_the_notice_is_shown_in_the_sidebar(self):
+    """The shared-instance warning, now a modal behind a sidebar button.
+
+    It used to be a sidebar box: permanent on every screen, seven lines of the navigation
+    column, for something a visitor reads once. The trigger sits exactly where the box was, so
+    the warning is one click away rather than always on screen — and the Admin page, the only
+    page that can actually change shared state, keeps the full text inline where it is needed.
+
+    ``AppTest`` runs a dialog body inline, so the modal's contents are asserted directly.
+    """
+
+    def test_the_sidebar_has_a_trigger_rather_than_a_permanent_box(self):
         at = self.open()
-        notices = [i.value for i in at.sidebar.info]
-        self.assertTrue(any("Shared demo" in n for n in notices), notices)
-        self.assertTrue(any("Reset demo state" in n for n in notices), notices)
+        self.assertEqual([i.value for i in at.sidebar.info], [],
+                         "the sidebar box should be gone — the warning is a dialog now")
+        labels = [b.label for b in at.sidebar.button]
+        self.assertTrue(any("Shared demo" in label for label in labels), labels)
+
+    def test_clicking_the_trigger_opens_the_warning(self):
+        at = self.open()
+        at.sidebar.button[0].click().run()
+        self.assertFalse(at.exception)
+        self.assertTrue(at.session_state["shared_demo_open"])
+        texts = [m.value for m in at.markdown]
+        self.assertTrue(any("Shared demo" in t for t in texts), texts)
+        self.assertTrue(any("Reset demo state" in t for t in texts), texts)
+        self.assertIn("Got it", [b.label for b in at.button])
+
+    def test_the_warning_stays_open_until_it_is_acknowledged(self):
+        """A page change must not dismiss it — an unacknowledged visitor has read nothing yet."""
+        at = self.open()
+        at.sidebar.button[0].click().run()
+        at.sidebar.radio[0].set_value("Admin").run()
+        self.assertFalse(at.exception)
+        self.assertTrue(at.session_state["shared_demo_open"])
+        self.assertTrue(any("Reset demo state" in m.value for m in at.markdown))
+
+    def test_got_it_closes_the_warning(self):
+        at = self.open()
+        at.sidebar.button[0].click().run()
+        got_it = [b for b in at.button if b.label == "Got it"]
+        self.assertEqual(len(got_it), 1)
+        got_it[0].click().run()
+        self.assertFalse(at.exception)
+        self.assertFalse(at.session_state["shared_demo_open"])
+        self.assertFalse(any("Reset demo state" in m.value for m in at.markdown))
 
     def test_the_notice_is_shown_on_the_admin_page(self):
         at = self.open()

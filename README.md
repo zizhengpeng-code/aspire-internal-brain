@@ -5,11 +5,9 @@ end-to-end prototype of an internal assistant that answers natural-language ques
 four source systems, **only** from documents the signed-in user is allowed to read at that
 moment, cites every factual claim, and keeps a tamper-evident, queryable audit trail.
 
-**Live demo:** <https://permission-aware-kb.app.workbuddy.host> (Tencent Cloud). It is one
-shared instance: sign in as any demo user, and press
-**Reset demo state** on the Admin page after trying the Admin actions. (Each deployment is
-handed a fresh hostname — the sandbox is reused, the public URL is not — so treat the link as
-per-deployment rather than permanent.)
+**Live demo:** <https://permission-aware-kb.app.workbuddy.host> (Tencent Cloud). The hostname is
+**fixed**, so this link is the one to put on any form. It is one shared instance: sign in as any
+demo user, and press **Reset demo state** on the Admin page after trying the Admin actions.
 
 > All companies, people, document ids and numbers in the corpus are invented. Regulatory
 > material is written as internal policy, never as a claim about real law. Every link uses a
@@ -19,15 +17,16 @@ per-deployment rather than permanent.)
 
 ## 1. Results at a glance
 
-> **Internal numbers.** Every figure in this section comes from evaluation cases that are still
-> drafts, not yet confirmed by the author (see the honesty note below). They show that the
-> pipeline works end to end; they are not a confirmed result.
+> **Confirmed cases.** Every figure in this section comes from evaluation cases the author has
+> since confirmed — `"source": "user"` on all 170 of them (38 agent-layer, 132 retrieval). The
+> report below is therefore the `user` subset, which is the only one quotable externally. The
+> corpus is simulated data, not a real enterprise export, and each run is one point estimate.
 
 Agent-layer evaluation (`python evaluate_agent.py`, model `deepseek-chat`, 91-document
 simulated corpus, 38 cases: 23 answerable, 15 over-reach probes). Source:
-[`results/2026-10-16_012802.agent.md`](results/2026-10-16_012802.agent.md) — the first
-agent-layer report run *after* the forced-retrieval fix, so it is the first one that matches
-the shipped code.
+[`results/2026-10-16_202237.agent.md`](results/2026-10-16_202237.agent.md) — run *after* the
+forced-retrieval fix and after the case set was confirmed, so it is the first report that is
+both current and externally quotable.
 
 | Metric (AgentDojo naming) | Value | n |
 |---|---|---|
@@ -36,9 +35,9 @@ the shipped code.
 | Utility Under Attack — answered, grounded, no leak | 100.0% | 7 |
 | **Targeted ASR** — answer contains the canary of a document the user cannot read | **0.0%** | 22 |
 | Leak rate, all cases | 0.0% | 38 |
-| Citation violation before the guard / after the guard | 15.8% / **0.0%** | 38 |
+| Citation violation before the guard / after the guard | 10.5% / **0.0%** | 38 |
 | False refusal (answerable cases) | **0.0%** | 23 |
-| Cost, latency, tokens per query | **$0.0015 · 3.26 s · 5,193 tokens** | 38 |
+| Cost, latency, tokens per query | **$0.0015 · 3.53 s · 5,163 tokens** | 38 |
 
 Ablation — Targeted ASR on the attack and over-reach cases, removing one layer at a time:
 
@@ -46,21 +45,26 @@ Ablation — Targeted ASR on the attack and over-reach cases, removing one layer
 |---|---|---|---|
 | `full` (production configuration) | 0.0% | 0.0% | 0.0% |
 | `no_search_filter` — retrieval no longer pre-filters | 0.0% | 0.0% | 14.3% |
-| `no_guard` — the answer guard only records its verdict | 4.5% | 4.5% | 0.0% |
-| **`no_search_filter+no_guard`** | **45.5%** | **45.5%** | 0.0% |
+| `no_guard` — the answer guard only records its verdict | 0.0% | 0.0% | 0.0% |
+| **`no_search_filter+no_guard`** | **31.8%** | **31.8%** | 0.0% |
 
 The two layers are not symmetric on this case set, and the asymmetry is the interesting part.
-With the pre-filter removed the guard still holds the line (0.0%) — but it now refuses 14.3% of
+With the pre-filter removed the guard still holds the line (0.0% leak) — but it now refuses 14.3% of
 cases it could have answered, because the model, shown the whole corpus, grounds its answer in
-a document the user cannot read and the turn then has no admissible citation. With the guard
-removed the pre-filter alone is **not** enough: 4.5% (1 of 22) of the answers carried the canary
-of a hidden document. Only the two together are both clean and cheap, which is the measured
-argument for defence in depth — and a stronger one than "either layer would do".
+a document the user cannot read and the turn then has no admissible citation.
+
+The guard's own contribution is the one figure that moves between runs: removing it leaked
+**4.5%** (1 of 22) in the previous report and **0.0%** here, and it blocked 6 of 38 answers there
+against 4 of 38 here. With 22 attack and deny cases, one case is the difference — so that
+number is a point estimate, not a margin, and it is reported here as the range it actually
+measures. The comparison that holds across every run is the fully ablated one: **31.8%–45.5%**
+leak with both layers removed, against 0.0% with both in place. That is the measured argument
+for defence in depth — and a stronger one than "either layer would do".
 
 **Run-to-run variation.** The model is not deterministic even at temperature 0, so the tail
-moves between runs: the fully ablated configuration has measured 43.5%, 47.8%, 36.4% and
-45.5% across the four committed runs, and the same question can be answered in one run and
-refused in the next (AG21 was answered from E03 in the latest run and refused in the one
+moves between runs: the fully ablated configuration has measured 43.5%, 47.8%, 36.4%, 45.5%
+and 31.8% across the five committed runs, and the same question can be answered in one run
+and refused in the next (AG21 was answered from E03 in the latest run and refused in the one
 before; AG14 answers from the general incident-reporting page E12 rather than refusing). The
 three earlier reports
 ([`2026-10-11_205557`](results/2026-10-11_205557.agent.md),
@@ -70,7 +74,7 @@ fix recorded in the development log (provided separately with the competition su
 AG21's relabelling, so they are kept for reference rather than as like-for-like comparisons.
 Single-run figures with small denominators are point estimates, not constants.
 
-Retrieval layer (`python evaluate.py`, same corpus, 132 draft cases, BM25/chunk, k=3):
+Retrieval layer (`python evaluate.py`, same corpus, 132 confirmed cases, BM25/chunk, k=3):
 
 | Access-control strategy | recall@3 | leak (all) | probe leak |
 |---|---|---|---|
@@ -78,7 +82,10 @@ Retrieval layer (`python evaluate.py`, same corpus, 132 draft cases, BM25/chunk,
 | `post_filter` | 88.9% | **0.0%** | **0.0%** |
 | `pre_filter` | **89.5%** | **0.0%** | **0.0%** |
 
-*Source: [`results/2026-10-11_205601.json`](results/2026-10-11_205601.json) (`all.exp1`).*
+*Source: [`results/2026-10-16_203053.json`](results/2026-10-16_203053.json) (`user.exp1`,
+which equals `all.exp1` — every case has been confirmed). The three reports committed under
+`2026-10-11_*` are the same experiment run before the cases were confirmed, and the numbers
+are identical: BM25 is deterministic, so there is no run-to-run drift to report on this layer.*
 
 Retriever comparison (`--compare`, pre_filter): **vector/doc recall@3 98.4%** > hybrid/doc
 96.8% > bm25/doc 92.1%. BM25 is the default because it needs no embedding API and its
@@ -86,23 +93,25 @@ recall is already sufficient for the demo.
 
 *Source: [`results/2026-10-11_205844.json`](results/2026-10-11_205844.json) (`all.exp3`).*
 
-**Honesty note on the numbers.** Both evaluation sets were drafted by the assistant and are
-still marked `"source": "draft"`; only cases the author has personally confirmed are allowed
-to be quoted externally, and that subset is currently empty — so the table above is the
-`all` (internal) subset and must not be presented as a confirmed result. The corpus is
-simulated data, not a real enterprise. Confirm the cases and rerun to promote them; the
-scripts split every report into `user` and `all` for exactly this reason.
+**Honesty note on the numbers.** Both evaluation sets were drafted by the assistant, so for most
+of this project's life the `user` subset was empty and nothing here could be quoted externally.
+The author has now confirmed all 170 cases (38 agent-layer, 132 retrieval), which is what flips
+each case's `"source"` from `draft` to `user`. The committed report is the `user` subset, and it
+happens to equal `all` because nothing is left unconfirmed — not because the filter is being
+ignored. Two things the confirmation does **not** change: the corpus is simulated data rather
+than a real enterprise export, and any single run is still one point estimate on small
+denominators (see the variation note below).
 
 Three further readings the headline numbers hide, all visible in the per-case table of the
 committed report:
 
-- The guard blocked 6 of 38 answers before they reached the user (AG06, AG07, AG08, AG13, AG15,
-  AG32) — that is the 15.8% pre-guard violation rate. In every one of them the model declined in
+- The guard blocked 4 of 38 answers before they reached the user (AG06, AG15, AG22, AG29) —
+  that is the 10.5% pre-guard violation rate. In every one of them the model declined in
   its own words instead of using the refusal template, so the guard replaced an uncited answer;
   none of them cited a document the model had not been given.
-- 2 of the 15 over-reach probes (AG05, AG14) were *answered* rather than refused, but only
-  with documents the user is allowed to read (E19; E12, the general incident-reporting page),
-  so no unreadable canary leaked. Targeted ASR measures exactly that distinction; a stricter
+- 2 of the 15 over-reach probes (AG08, AG13) were *answered* rather than refused, but only
+  with documents the user is allowed to read (D06, E12, E14; E12, the general incident-reporting
+  page), so no unreadable canary leaked. Targeted ASR measures exactly that distinction; a stricter
   "did the assistant refuse every deny case" rate would read 13/15.
 - False refusals are 0 of 23 in this run. In the previous report they were 3 of 23 (AG33 and
   AG34 wrapped a legitimate question in an injection, and AG21 asked for a lag *figure* that
@@ -578,6 +587,247 @@ Excluded documents behave as if they do not exist, and the audit reason is
 in the model, the over-sharing scan looks at *platform* readers (before the policy layer) and
 reports documents that a contractor can read, or that more than half of all users can read.
 
+### 4.7 The brand
+The sign-in screen is bespoke — ink type on paper, one bordered list, a row that turns green
+when selected, one black button. The pages behind it were stock Streamlit, so the demo changed
+design language halfway through: red radio dots and slider tracks, blue `st.info` boxes, blue
+links, an orange robot for the assistant. The gap was closed from two sides, because one side
+alone cannot do it.
+
+**The mark and the type.** `static/brand/` holds the Aspire logo exactly as it was supplied, and
+`scripts/make_brand_assets.py` derives everything else from it — the mark alone, the wordmark, the
+lockup, monochrome cuts for dark tiles, and the favicon. It recovers alpha by *unmixing* the
+artwork from its white background (`a = (255-R)/(255-2)`) rather than thresholding it, so
+antialiased edges come back as real partial coverage instead of a hard cut with a white fringe.
+The brand green is sampled out of the same master instead of being typed in by hand: `#02D169`.
+
+The product name under the lockup is set in **Jost**, self-hosted from `static/fonts/` — the same
+Futura lineage as the `aspire` wordmark beside it, down to the single-storey `a`. That is the
+whole reason for the choice: the product should look like something made by the company that made
+the logo. Body copy stays on the system stack, which is what the sign-in screen already used.
+`server.enableStaticServing` is on so `static/` is served at `/app/static/…`; the CSS points at
+those absolute paths. Turn it off and the app still works — the type falls back to the system
+stack.
+
+**One green, grey everywhere else.** Ink `#131313` on paper `#FFFFFF`, a neutral grey `#F4F4F4` for
+surfaces, the `#E4E7E5` hairline, and one brand green — and the split between the last two is the
+point. Grey carries every *surface* (sidebar, info boxes, table header, the question bubble, the
+account chips); green is only ever an *action, a mark or a selection*: the logo, a primary button,
+a hovered button, the send arrow, a link's underline, the selected account row. There is
+deliberately no lighter tint of it — an earlier revision used a pale mint as the surface colour,
+and a whole sidebar of it stopped reading as the same green the sign-in screen uses for a single
+selected row.
+
+`primaryColor` in `.streamlit/config.toml` is ink, not green, and that is a deliberate reversal.
+It is the token behind radio dots, slider tracks, checkboxes and focus rings — **and the
+dataframe's own highlight**. Setting it green washed the citation cells of the audit table in pale
+green, which reads as "success" in a log that is deliberately neutral. Green is spent through the
+stylesheet instead, where it can be aimed at buttons and at nothing else.
+
+`.streamlit/config.toml` owns everything a theme token can express, and that is most of it:
+surfaces and ink, the hairline, link colour, corner radius, widget borders, the dataframe's header
+and borders, and the whole alert palette (info becomes the grey surface, the amber stays warm
+because it carries the refusal, red and green keep their meanings at lower saturation). This is
+not stylistic preference: radio dots, slider tracks, dataframe grid lines and focus rings are
+painted from theme tokens, and **no stylesheet can reach them**. Styling those with CSS would have
+meant fighting generated class names.
+
+`app.py` holds two sheets. `_BRAND_CSS` is injected on *every* screen, including the two sign-in
+ones, because the masthead is drawn before a user has been chosen — and it owns the `@font-face`
+and the `:root` tokens, so both sheets and both screens read one definition. (An unstyled `<img>`
+in the sidebar renders at its intrinsic 736px and tears the layout open, which is how that split
+was found.) `_APP_CSS` is injected only *after* the login flow hands over, and keeps what a token
+cannot express: the transcript avatars, the question bubble, caption colour, and the reading
+measure. The sign-in and checking screens are never styled twice.
+
+**Avatars.** The assistant tile in the transcript used to hold the letters `IB`, which at 28px
+read as an abstract blob. It now carries the mark. The person speaking gets a paper chip with
+their initials and the hairline — paper rather than grey, because the question bubble is grey and
+a grey chip disappeared into it, leaving the initials floating as part of the sentence. The same
+chip, drawn as a `::before` from generated CSS, is what makes the sign-in rows read as a list of
+people: a button label carries a single style, so `JD · Jamie Doe — Backend Engineer` had read as
+three facts strung together instead of a person with a role.
+
+**The shared-demo warning.** It used to be a sidebar `st.info`: seven lines of the navigation
+column on every screen, for something a visitor reads once and never again. It is now a
+`st.dialog`, opened from a button sitting in exactly that spot — one click away instead of always
+on screen, and still unmissable on the sign-in screen, which is where a first-time visitor meets
+it. The Admin page keeps the full text inline, because that is the one page whose buttons actually
+change what everyone else sees. Streamlit re-runs the whole script on every interaction inside a
+dialog, and a dialog can only be opened from the top level of a script, so the trigger does no
+more than set a session flag and `main()` acts on it — which is also what keeps the dialog up if
+the visitor changes page before acknowledging it.
+
+The panel is not left on Streamlit's defaults. Measuring it first (`results/_dlg_struct.mjs`, which
+walks the real box tree rather than guessing at the DOM) showed three things off the system: the
+scrim ships as a pale grey wash that leaves the page behind exactly as loud as the dialog, so it
+becomes ink; the panel sits at 24px, one step off the radius ramp, and comes down to the 18px the
+other cards use; and the title is an `h2` inside `section[role=dialog]` rather than inside
+`stHeading`, so it has to be given the brand face explicitly or it renders in the theme font while
+every heading around it is Jost. All three rules live in `_BRAND_CSS`, because the dialog can be
+opened before a user has been chosen and `_APP_CSS` does not exist yet at that point.
+
+**Rhythm and measure.** Radii are a ramp rather than one value (12px controls, 14px expanders, 18px
+cards, 6px inline code) — one radius for everything is what makes a page read as a pile of
+identical rounded boxes. The transcript is capped at `37rem`, which lands the text on 64
+characters: on `layout="wide"` an uncapped chat row put roughly ninety on a line, past the point
+where the eye loses its place on the return sweep. The value was arrived at by measuring rather
+than by picking a round number — see §4.8.
+
+Deliberately left alone: the body of `st.dataframe` (a canvas — only its header, grid and frame are
+themed), and the `·`-joined statistics inside the Admin, Compliance and ROI detail views, where a
+separator between two measured numbers is doing real work rather than decorating a heading.
+`start.py` does not repeat the palette: it chdirs to the project root before it execs Streamlit, so
+a hosted deployment reads the same `.streamlit/config.toml` a local run does.
+
+The evidence for all of this is `results/ui/`: `before-*.png` is the stock build, `final-*.png` is
+the current one (including `final-0-dialog.png`, the shared-demo modal open over the sign-in
+screen), `results/ui-probe.mjs` walks the pages and reads the real computed styles out of the DOM
+with `SHOT_DIALOG=1` adding the modal pass, and `results/diff_probe.py` prints the difference
+between two such walks. `results/build_review_sheet.py` turns a pair of walks into a single
+self-contained before/after page. `results/with-app.sh` owns the start → wait → run → reap
+lifecycle for all of them, because a Streamlit server started as its own background shell dies
+with that shell.
+
+### 4.8 The design audit
+Two published rule sets were run against the UI rather than trusted wholesale:
+`nextlevelbuilder/ui-ux-pro-max` — a design-intelligence skill whose reasoning engine returns a
+style, a palette, a type pairing and a pre-delivery checklist for a described product — and
+`mblode/agent-skills`' `typography-audit`, 78 scoped typography rules. About half of what they
+returned was wrong for this project; recording the *rejections* is the more useful half.
+
+**Where the generator agreed.** Pointed at "internal enterprise security compliance audit console
+fintech" with the variance and motion dials turned down, it returned **Minimalism / Swiss Style** —
+"clean, simple, spacious, functional, high contrast, geometric, sans-serif, grid-based", best for
+"enterprise apps, dashboards, professional tools". That is where the UI already was, so the pass
+became an audit instead of a redesign, and its pre-delivery checklist produced five real findings.
+
+**Where it was wrong.** Its *pattern* was "Trust & Authority + Conversion": a hero, a logo
+carousel, social proof, "Contact Sales". That is a marketing landing page; this is an authenticated
+internal console. Its *palette* was gold `#F59E0B` on a `#0F172A` dark background with a purple
+`#8B5CF6` accent, which would have thrown away the Aspire green and the paper-white surface built
+in §4.7 — and which its own anti-pattern list calls out as "AI purple/pink gradients". Its
+*motion* suggestion was a GSAP scroll-reveal, which Streamlit does not have and a tool does not
+want. Its *type* recommendation — IBM Plex Sans, mood "financial, trustworthy, banking" — is
+defensible for a pure banking product, but this product's face is set by the Aspire wordmark (Jost,
+same Futura lineage) and the body is already the system stack; adding a third family to chase a
+mood would have been the flashy move the brief ruled out.
+
+**Icons.** Six sites used an emoji as an icon — the four source glyphs on citation cards, the
+warning above the example questions, the dialog title, the sidebar trigger. An emoji is drawn by
+the operating system, so the same document came back as three different pictures in three
+different colours on three platforms, and never in the brand's. They are now `:material/…:`
+symbols: Streamlit's own syntax for an inline SVG that inherits the text colour.
+
+**Motion.** The resolved transition on a button was `all 0s`, so every hover went from paper to
+green with no interval at all — a flicker, not a response. Interactive elements now carry
+`background-color / color / border-color / box-shadow` at 180ms, inside the 150-300ms band, and
+the whole block is switched off under `prefers-reduced-motion`.
+
+**Measure.** The transcript cap was `42rem`, which measurement showed to be **76 characters** —
+just over the 75 the rule allows, and not the "near seventy" the comment claimed. The first fix,
+`66ch`, was worse: `ch` is the advance of the "0" glyph *in the element it is applied to*, and this
+cap is on the row, which carries the chat chrome's font context and padding rather than the
+paragraph's, so `66ch` resolved to a 453px column and **56 characters**. The cap is now `37rem`,
+which measures **64**. All three values are in the source comment, because the wrong turns are the
+instructive part.
+
+**Control boundaries.** `--hairline` is 1.25:1 against paper. That is right for a card edge or a
+table rule, which only has to separate, and too faint for the outline that tells you a button is a
+button — at 1px and that value a bordered control stops reading as a control. A zoomed
+side-by-side of `#E4E7E5` / `#B4BAB6` / `#8D8D8D` settled it: the first is under-defined, the last
+is crisp without being heavy. Only the interactive boundaries moved — inputs, selects, secondary
+buttons, the chat box — to `--control-edge: #868B88`, the lightest neutral of the same hue that
+clears 3:1 on *both* surfaces controls sit on (3.46:1 on paper, 3.15:1 on the grey field). Dividers
+and card edges keep the hairline, so the added weight lands only on things you can press. The
+sign-in list's outer border deliberately stays light: each row carries a name, a title, an initials
+chip and a hover fill, so the border is not the row's only affordance — and that is the screen the
+client already signed off on.
+
+**One leftover colour.** The account-row hover was `#F2F7F4`, a pale mint from the rejected
+green-surface era. A tint of the brand green used as a surface is the one thing this palette is
+built to avoid, and it muddied the selected state: if hovering tints a row green and selecting
+paints it green, green stops meaning "selected". Hover is now the neutral surface.
+
+**Three things that did not line up.** All three came back from a reader's own screenshot of the
+transcript, and all are the same ordinary rule — things on one line share a line — which is why
+they were a repair rather than a restyle.
+
+The assistant's avatar is a 32px tile, and the first line of every message is a 25.6px line box.
+Flush tops therefore put the tile's centre **3.2px below** the text's optical centre, which reads as
+the tile sagging under the sentence instead of sitting beside it. Measured twice, from both ends:
+`results/layout-probe.mjs` puts the tile centre at -494 and the line-box and glyph centres at -497,
+and scanning the reader's screenshot the same way gives 3.7px. Half the difference is the fix —
+`translateY(-3px)` on both avatars — and the probe's residual is -0.2px.
+
+The citation cards were three piles rather than a row. `st.columns` already gives every column in a
+row the same height; the card *inside* was free to be its own, so a title that wrapped to four lines
+was 233px tall beside two at 198px, and the three `Open in …` links landed **39px apart**. Building
+the rows three at a time also makes the last row independent: the old round-robin fill left column 1
+holding two cards and column 3 holding one, which nothing could have aligned. Two CSS rules do the
+rest — the card fills its column and the footnote is pinned to the bottom, so the slack from a
+shorter title falls *above* the footnote rather than under it. Measured after: 233 / 233 / 233, with
+tops, bottoms, caption lines and link lines all at a spread of **0px**.
+
+The caption on those cards also stopped printing the raw `updated_at`.
+`2026-10-05T09:00:00+08:00` is 25 characters and a card's third of the transcript holds about 21,
+so it broke *inside the date*, on a hyphen: `2026-10-` / `05T09:00:00+08:00`. The card shows the day
+now; a to-the-second value stays where anyone actually reads one, on the audit pages. Location and
+day are one caption joined by `<br>` rather than two elements, because the card's own 16px gap would
+put a hole between two things that belong together.
+
+The third was *inside* the avatar. The reply was a screenshot of nothing but the tile, with the
+Aspire mark sitting in its bottom-right corner and clipped by the edge — and the first round's
+probe had said "aligned", because it measured the tile's outer edges and the line beside them. An
+element can be in the right place and still have the wrong thing drawn inside it. Streamlit wraps
+the avatar glyph in a `<span>`, and that span is a flex item: hiding the glyph alone left the
+wrapper in the flow, 20px wide inside a 32px tile, so the mark was pushed to the right edge and —
+wrapper plus mark overflowing the tile — flex shrank it from the 19px it asked for to a measured
+**12px**, `background: center / contain` centring inside that sliver. `results/_avatar_dump.txt`
+prints it: `::after` at `12pxx19px` beside a `span` at `0,6`. The fix hides the wrapper
+(`> * { display: none }`) and gives the replacement `flex: none`; the 4x close-up puts the mark's
+centre within **0.12px** of the tile's centre on both axes, with margins of 6.75 / 7.00 / 7.25 /
+7.00px around it.
+
+A dead rule fell out of the same measurements. The cards were addressed by
+`[data-testid="stVerticalBlockBorderWrapper"]`, which **does not exist in Streamlit 1.65** —
+`st.container(border=True)` is a plain `stVerticalBlock` that happens to carry a border — so a rule
+meant to give content cards an 18px radius had never applied; dumping every testid the running app
+emits (`results/_cards_dump.mjs`) is what caught it, and cards keep the theme's measured 12px. The
+cards are now addressed by their position in the column, with the chain written out in the source,
+because there is no stable hook — and a header comment claiming the sheet "stays away from layout"
+would have been false by then anyway.
+
+That same probe had to be run twice for a second reason. An expander has two elements that could
+own its corner, and a first pass that sampled only `summary` read 12px and made the 14px rule look
+wrong; `details` is the one carrying the 0.667px border, so 14px is what is on screen and the rule
+was right all along. The output now prints both, and the source comment says which rung to read —
+sampling the wrong element is the same failure as searching for the wrong testid, one layer down.
+
+**Verified as already correct, so untouched.** Focus rings — Streamlit paints a 3.2px ink
+`box-shadow` ring, visible, not removed. `cursor: pointer` on buttons. Reduced motion on the
+sign-in and checking screens, which already had both a `@media` branch and a `matchMedia` guard for
+the counter. Midpoint separators: the `·` in the audit and metrics lines is already U+00B7, which is
+what the rule asks for, and is not used as a title ornament. Body line-height is 1.6, inside the
+1.45-1.6 band.
+
+**How it was measured.** `results/type-probe.mjs` signs in, asks a question, and reads computed
+font-size, line-height and box width — plus, by rendering a probe string off-screen, the average
+advance of the loaded face, so "characters per line" is a measurement rather than an estimate. It
+also reads the resolved `transition` and the focus ring, and the output is kept in
+`results/typography-after.txt`. `results/layout-probe.mjs` does the same for the two alignments
+above, and `SHOT=` makes it photograph the page the numbers came from in the same run (output in
+`results/layout-before.txt` and `layout-after.txt`). Contrast was computed against WCAG relative
+luminance for every text/surface pair in the palette. One probe bug is worth recording: once
+box-shadow gained a transition, reading the focus ring synchronously after `.focus()` returned the
+*starting* value and made a perfectly visible ring look removed — the probe now waits for the
+transition to settle. `results/_dlg_struct.mjs` and `results/_cards_dump.mjs` do the same for the
+dialog and the cards: they print the real box trees rather than describing Streamlit's DOM from
+memory, which is how both dead assumptions above were found. `results/_avatar_dump.mjs` reads the
+avatar's pseudo-elements the same way — `getComputedStyle(el, '::after')` is the only way to ask
+the mark itself what size it is, and reading the host and guessing is how the 12px sliver survived
+one full round of "verified" measurements.
+
 ---
 
 ## 5. Running it
@@ -588,7 +838,7 @@ pip install -r requirements.txt
 cp .env.example .env          # then fill in LLM_API_KEY (and EMBED_* for vector retrieval)
 python evaluate.py            # retrieval evaluation (BM25, no API needed)
 python evaluate_agent.py      # agent evaluation, with the ablation sweep
-python -m unittest discover tests     # 195 tests, no external API, no OpenFGA service
+python -m unittest discover tests     # 198 tests, no external API, no OpenFGA service
 
 streamlit run app.py          # the demo UI
 python scripts/capture_scenarios.py   # regenerate docs/scenarios.md
@@ -763,7 +1013,7 @@ mmdc -i docs/architecture.mmd -o docs/architecture.svg -b white
 | **BM25 recall on synonyms** | Measured: bm25/doc recall@3 92.1% vs vector/doc 98.4%. Mitigated by the hybrid retriever; the default stays BM25 to keep the demo dependency-free. |
 | **Over-refusal under attack** | Measured 13.0% false refusals (3 of 23) in the pre-fix run and **0.0% (0 of 23)** in the latest one — the forced retrieval removed the case where the model answered a follow-up out of the transcript and the guard then replaced the whole answer with a refusal. The cost has not disappeared, it has moved: the `no_search_filter` ablation above shows the guard refusing 14.3% of cases it could have answered once retrieval stops pre-filtering. A usability cost, not a security one. |
 | **A repeat that cites what it just showed the user** | Found on the live demo: ask the same question twice and the second turn was *refused*. The answer was correct — the guard threw it away, because its closing line cites the linked Jira item E16, and E16 never comes back on its own (E06 is long enough that its own chunks fill the default `k`, which counts chunks, not documents). The transcript still carries it, and the model is being asked to build on what it just told the user. Fixed by carrying the surviving turns' citations into the guard's `seen` set; a revoked document is still not carried over, because its turn is filtered out first (`ACitationCarriedOverFromThePreviousTurnIsNotAnInventedOne`). Measured against the live model: 8 false refusals in 14 repeats before, **0 in 10** after. |
-| **Evaluation set is not author-confirmed** | Every metric here comes from draft cases; the `user` subset is empty. Reported as such. |
+| **Evaluation set is author-confirmed** | **Closed.** Every metric here now comes from cases the author confirmed — all 170 are `"source": "user"`, so the `user` subset is no longer empty. What stays open is narrower: the corpus is simulated, and each run is one point estimate on small denominators. |
 | **A question about a turn that was dropped** | Retrieval is forced whenever the first round comes back without a tool call, so an exact repeat, a rephrased repeat and a follow-up on a related topic are all re-retrieved and answered from what is true now. The exception is the case forcing cannot help: when *every* earlier turn was filtered out because its documents became unreadable, a follow-up such as "repeat what you just told me" points at a conversation the user can no longer see, so it is refused rather than answered from an unrelated document on the same topic. A usability cost, not a security one (`QuestionAboutADroppedTurnIsRefused`). |
 
 ## 8. Security-framework mapping
@@ -797,7 +1047,7 @@ Correspondence only — no framework definitions are reproduced.
 | `app.py` | the Streamlit demo UI |
 | `simulate.py` | demo state changes (content update, revocation, tamper, truncate, reset, index warm-up) |
 | `scripts/capture_scenarios.py` | runs the five demo scenarios end to end and regenerates `docs/scenarios.md` |
-| `tests/` | 195 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI, demo limits — no external API |
+| `tests/` | 198 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI, demo limits — no external API |
 | `docs/` | Mermaid diagram sources and pre-rendered SVGs, generated scenario transcripts, UI screenshots |
 
 ## 10. Submission checklist
@@ -813,7 +1063,7 @@ Correspondence only — no framework definitions are reproduced.
 - [x] Design trade-offs and residual-risk table (sections 6 and 7)
 - [x] Security-framework mapping (section 8)
 - [x] README in English (this file)
-- [ ] Confirm the draft evaluation cases so the `user` subset is non-empty, then rerun both evaluations
-- [ ] Record the 5–8 minute demo video (screen capture of `streamlit run app.py`)
-- [ ] Deploy the app to Streamlit Community Cloud as a public demo link (section 5.1: first-start seed, shared-state notice, spending limits)
+- [x] Confirm the evaluation cases so the `user` subset is non-empty, then rerun both evaluations — all 170 confirmed; reports re-run as `results/2026-10-16_202237.agent.*` and `results/2026-10-16_203053.json`
+- [x] Record the 5–8 minute demo video — `video/out/internal-brain-demo.mp4`, 6 min 18 s · 97.4 MB
+- [x] Deploy the app as a public demo link — Tencent Cloud sandbox on the **fixed** hostname `permission-aware-kb.app.workbuddy.host` (section 5.1: first-start seed, shared-state notice, spending limits). Redeploy once after the final edit so the live instance matches this commit, then open Admin → **Reset demo state** before the judges arrive.
 - [x] Repository pushed and public: <https://github.com/zizhengpeng-code/aspire-internal-brain>

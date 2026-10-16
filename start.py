@@ -40,6 +40,11 @@ RUNTIME_DEFAULTS = {
 # handed a different hostname (each deployment gets a fresh public URL).
 DEFAULT_PUBLIC_ORIGINS = "https://permission-aware-kb.app.workbuddy.host"
 
+# The palette is *not* repeated here: it lives in `.streamlit/config.toml`, and Streamlit reads
+# a project-level config from its working directory — which `main()` below sets to the project
+# root before it execs, so the hosted demo picks it up like a local run does. One definition,
+# no drift between a deployment and a checkout.
+
 
 def main():
     for key, value in RUNTIME_DEFAULTS.items():

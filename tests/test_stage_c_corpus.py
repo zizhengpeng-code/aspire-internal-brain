@@ -141,7 +141,12 @@ class EvalAgentSet(unittest.TestCase):
         for c in self.cases:
             for field in ["id", "user", "question", "gold", "expect", "tag", "source"]:
                 self.assertIn(field, c, c.get("id"))
-            self.assertEqual(c["source"], "draft", c["id"])
+            # `source` records who stands behind a case: "draft" is assistant-written, "user" is
+            # author-confirmed. `load_cases()` defaults to "draft" and only "user" cases may be
+            # quoted externally, so this asserts the whole set has been confirmed. It therefore
+            # also fires when a case is added: a new case starts as "draft" and has to be
+            # confirmed and flipped by hand before this passes again.
+            self.assertEqual(c["source"], "user", f"{c['id']} 未确认（应为 user）")
             self.assertIn(c["expect"], {"answer", "deny"}, c["id"])
             self.assertIn(c["tag"], TAGS, c["id"])
             for g in c["gold"]:
