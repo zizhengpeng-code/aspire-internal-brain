@@ -28,6 +28,18 @@ RUNTIME_DEFAULTS = {
     "LOGIN_FLOW": "1",          # show the sign-in screen on the hosted demo
 }
 
+# The hosting gateway terminates TLS and then forwards the request to the sandbox with a
+# *local* ``Host`` header. Streamlit decides whether a WebSocket upgrade is cross-origin by
+# comparing the browser's ``Origin`` with that ``Host``; because the forwarded ``Host`` is no
+# longer the public one, the browser's own origin looks cross-origin and Streamlit answers
+# 403, so the page paints but never connects. Listing the public origin below is the remedy
+# Streamlit itself recommends (``server.corsAllowedOrigins``) — and it stays narrow: every
+# other origin is still refused.
+#
+# One origin per entry; override with a space-separated ``PUBLIC_ORIGINS`` when a deployment is
+# handed a different hostname (each deployment gets a fresh public URL).
+DEFAULT_PUBLIC_ORIGINS = "https://permission-aware-kb.app.workbuddy.host"
+
 
 def main():
     for key, value in RUNTIME_DEFAULTS.items():
@@ -51,6 +63,8 @@ def main():
                # cheap insurance against an idle timeout we do not control.
                "--server.websocketPingInterval", "20",
                "--browser.gatherUsageStats", "false"]
+    for origin in os.environ.get("PUBLIC_ORIGINS", DEFAULT_PUBLIC_ORIGINS).split():
+        command += ["--server.corsAllowedOrigins", origin]
     os.execv(sys.executable, command)      # replace this process: the sandbox watches one PID
 
 
