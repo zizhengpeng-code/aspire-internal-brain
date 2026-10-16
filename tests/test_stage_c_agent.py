@@ -16,6 +16,7 @@ import simulate
 from agent import Session, answer
 from audit import AuditLog
 from langchain_core.embeddings import DeterministicFakeEmbedding
+from langchain_core.messages import AIMessage, ToolMessage
 from llm import LLM
 from retrieval import CachedEmbeddings, VectorIndex
 from tools import make_tools
@@ -375,6 +376,80 @@ class EndToEndAnswer(AgentBase):
         self.assertTrue(set(result["citations"]) <= authz.visible_ids("jdoe"))
         self.assertNotIn("2026-11-07", result["answer"])          # the private slip must not surface
         self.assertTrue(result["steps"] and result["steps"][0]["tool"] == "search")
+
+
+class _ScriptedReciter:
+    """Stand-in for the live model on a repeated question (no API calls).
+
+    It *does* retrieve — so this is not the case the forced retrieval fixes — and then
+    re-states the previous answer, whose closing line cites a document that only the
+    *earlier* turn's tools had returned. It exposes the few attributes ``answer`` reads for
+    its usage and audit bookkeeping.
+    """
+    model = "scripted"
+    calls = prompt_tokens = completion_tokens = cache_hits = 0
+    cost = 0.0
+    price_in = price_out = None          # so `answer` reports cost as "not priced"
+
+    def __init__(self, query, recital):
+        self.query, self.recital = query, recital
+
+    def bind_tools(self, tools):
+        return self
+
+    def invoke(self, messages, tools=None):
+        self.calls += 1
+        if not any(isinstance(m, ToolMessage) for m in messages):
+            return AIMessage(content="", tool_calls=[
+                {"name": "search", "args": {"query": self.query}, "id": "call_search_1"}])
+        return AIMessage(content=self.recital)
+
+
+class ACitationCarriedOverFromThePreviousTurnIsNotAnInventedOne(AgentBase):
+    """Defect found on the live demo, at scenario ②'s "ask it again" step.
+
+    Asked the same runbook question twice in one session, the assistant answered the first
+    time and *refused* the second — ``Agent steps (2)``, "I couldn't find information you
+    have access to". The second answer was correct and complete; the guard had thrown it
+    away, because its closing line cites the linked Jira item E16, which only the first
+    turn's search had returned. E16 cannot come back by itself: ``k`` counts chunks, and
+    E06 is long enough that its own chunks fill the default of six. The transcript still
+    carries E16 though, and the model is being asked to build on what it just told the
+    user — so a citation that is still readable must not fail rule 1. Measured against the
+    live model before the fix: about half of all repeats, always on E16.
+    """
+
+    ANSWER = ("The latest runbook is **PGW-RB-8, rev 8, updated 2026-10-14 13:00** [E06]. "
+              "It links to one related document, PAY-202 (In Progress, assignee Wei Lin) [E16].")
+
+    def test_a_still_readable_citation_from_the_previous_turn_is_accepted(self):
+        simulate.update("E06")                       # the 13:00 revision, as on the demo
+        session = Session("wlin", llm=_ScriptedReciter("payment-service runbook", self.ANSWER),
+                          audit=self.audit)
+        _, call = make_tools(session)
+        returned = {r["doc_id"] for r in call("search", {"query": "payment-service runbook"})["results"]}
+        # The premise, or the test proves nothing: this turn's own tools never reach E16, so
+        # the citation can only have come from the transcript.
+        self.assertNotIn("E16", returned)
+
+        history = [{"question": "latest payment-service runbook",
+                    "answer": self.ANSWER, "citations": ["E06", "E16"]}]
+        result = answer(session, "Show me the latest runbook for the payment service",
+                        history=history)
+        self.assertFalse(result["refused"], result["guard"])
+        self.assertEqual(result["citations"], ["E06", "E16"])
+
+    def test_a_citation_the_user_can_no_longer_read_is_still_refused(self):
+        # E09 is not readable by wlin, so the turn carrying it is filtered out and nothing is
+        # carried over — reciting it still fails closed, exactly as scenario ④ requires.
+        recital = "The Q3 incident report is attached to this thread [E09]."
+        session = Session("wlin", llm=_ScriptedReciter("security incident report", recital),
+                          audit=self.audit)
+        history = [{"question": "the old thread", "answer": recital, "citations": ["E09"]}]
+        result = answer(session, "Show me that report again", history=history)
+        self.assertTrue(result["refused"])
+        self.assertEqual(result["answer"], guard.REFUSAL_EN)
+        self.assertEqual(result["citations"], [])
 
 
 if __name__ == "__main__":

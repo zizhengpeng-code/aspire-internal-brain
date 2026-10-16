@@ -549,6 +549,12 @@ audited, but the shadow results are never returned to the model.
 The conversation keeps only (question, guarded answer, citations) — never the raw tool
 output. Before each turn, `filter_history` drops any earlier turn whose cited documents the
 user can no longer read, so a revoked document cannot be recited from the model's memory.
+What *survives* that filter is carried into the guard as well: the transcript is as much an
+input as this turn's tool results are, so a document the user was already shown — and can
+still read, because the filter just re-checked it — counts as returned. Without that,
+re-stating the previous answer's closing line (which cites the linked document that only the
+earlier turn's search reached) failed the "returned this turn" rule and replaced a correct
+answer with the refusal — see the residual-risk row for the measured rate.
 
 ### 4.5 Audit, checkpoints and alerts
 Every request appends `who / what (question, tool calls, returned ids, per-document
@@ -582,7 +588,7 @@ pip install -r requirements.txt
 cp .env.example .env          # then fill in LLM_API_KEY (and EMBED_* for vector retrieval)
 python evaluate.py            # retrieval evaluation (BM25, no API needed)
 python evaluate_agent.py      # agent evaluation, with the ablation sweep
-python -m unittest discover tests     # 176 tests, no external API, no OpenFGA service
+python -m unittest discover tests     # 195 tests, no external API, no OpenFGA service
 
 streamlit run app.py          # the demo UI
 python scripts/capture_scenarios.py   # regenerate docs/scenarios.md
@@ -756,6 +762,7 @@ mmdc -i docs/architecture.mmd -o docs/architecture.svg -b white
 | **Truncation after the last checkpoint** | A signed checkpoint detects truncation only up to the last checkpoint. Production would anchor checkpoints in external append-only storage. **Accepted** for this prototype. |
 | **BM25 recall on synonyms** | Measured: bm25/doc recall@3 92.1% vs vector/doc 98.4%. Mitigated by the hybrid retriever; the default stays BM25 to keep the demo dependency-free. |
 | **Over-refusal under attack** | Measured 13.0% false refusals (3 of 23) in the pre-fix run and **0.0% (0 of 23)** in the latest one — the forced retrieval removed the case where the model answered a follow-up out of the transcript and the guard then replaced the whole answer with a refusal. The cost has not disappeared, it has moved: the `no_search_filter` ablation above shows the guard refusing 14.3% of cases it could have answered once retrieval stops pre-filtering. A usability cost, not a security one. |
+| **A repeat that cites what it just showed the user** | Found on the live demo: ask the same question twice and the second turn was *refused*. The answer was correct — the guard threw it away, because its closing line cites the linked Jira item E16, and E16 never comes back on its own (E06 is long enough that its own chunks fill the default `k`, which counts chunks, not documents). The transcript still carries it, and the model is being asked to build on what it just told the user. Fixed by carrying the surviving turns' citations into the guard's `seen` set; a revoked document is still not carried over, because its turn is filtered out first (`ACitationCarriedOverFromThePreviousTurnIsNotAnInventedOne`). Measured against the live model: 8 false refusals in 14 repeats before, **0 in 10** after. |
 | **Evaluation set is not author-confirmed** | Every metric here comes from draft cases; the `user` subset is empty. Reported as such. |
 | **A question about a turn that was dropped** | Retrieval is forced whenever the first round comes back without a tool call, so an exact repeat, a rephrased repeat and a follow-up on a related topic are all re-retrieved and answered from what is true now. The exception is the case forcing cannot help: when *every* earlier turn was filtered out because its documents became unreadable, a follow-up such as "repeat what you just told me" points at a conversation the user can no longer see, so it is refused rather than answered from an unrelated document on the same topic. A usability cost, not a security one (`QuestionAboutADroppedTurnIsRefused`). |
 
@@ -790,7 +797,7 @@ Correspondence only — no framework definitions are reproduced.
 | `app.py` | the Streamlit demo UI |
 | `simulate.py` | demo state changes (content update, revocation, tamper, truncate, reset, index warm-up) |
 | `scripts/capture_scenarios.py` | runs the five demo scenarios end to end and regenerates `docs/scenarios.md` |
-| `tests/` | 176 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI, demo limits — no external API |
+| `tests/` | 195 tests: authorization, guardrails, corpus invariants, LangGraph, LLM cache, metrics, UI, demo limits — no external API |
 | `docs/` | Mermaid diagram sources and pre-rendered SVGs, generated scenario transcripts, UI screenshots |
 
 ## 10. Submission checklist

@@ -271,8 +271,18 @@ def answer(session, question, history=None, max_rounds=MAX_ROUNDS):
         messages.append(AIMessage(content=turn["answer"]))
     messages.append(HumanMessage(content=question))
 
+    # The transcript above is as much an input as this turn's tool results are, so a document
+    # the user was already shown counts as returned. ``filtered`` is exactly the set of turns
+    # whose documents are readable *now* (``filter_history`` re-checked that a line earlier),
+    # so nothing revoked is carried over. Without this, re-stating the previous answer's
+    # closing line — which is what the model does when it is asked the same thing twice —
+    # fails rule 1 and a correct answer is replaced by the refusal, which reads as "no
+    # access". Measured on the live demo: about half of all repeats, always citing the
+    # linked document whose chunks the second turn's search does not reach.
+    carried_over = sorted({doc for turn in filtered for doc in (turn.get("citations") or [])})
+
     graph, _ = build_graph(session, max_rounds=max_rounds)
-    final = graph.invoke({"messages": messages, "rounds": 0, "seen": [], "steps": [],
+    final = graph.invoke({"messages": messages, "rounds": 0, "seen": carried_over, "steps": [],
                           "history_dropped": bool(history) and not filtered},
                          context={"user_id": session.user_id, "session_id": session.session_id},
                          config={"recursion_limit": 12})
